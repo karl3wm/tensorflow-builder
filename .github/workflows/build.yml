@@ -25,7 +25,7 @@ jobs:
           git init .
           git remote add origin https://github.com/tensorflow/tensorflow
           git fetch --depth=1 --filter=tree:0 origin 'refs/tags/*:refs/tags/*'
-          echo "versions=$(git tag --list --sort=-creatordate 'v*.[0-9]' | head -n 24 | shuf | xargs echo -n | jq --raw-input --slurp --compact-output 'split(" ")|.[0:8]')" | tee -a $GITHUB_OUTPUT
+          echo "versions=$(git tag --list --sort=-creatordate 'v*.[0-9]' | head -n 3 | shuf | xargs echo -n | jq --raw-input --slurp --compact-output 'split(" ")|.[0:8]')" | tee -a $GITHUB_OUTPUT
       - name: Fetch recent Python versions
         id: python
         run: |
@@ -34,7 +34,7 @@ jobs:
           git init .
           git remote add origin https://github.com/python/cpython
           git fetch --depth=1 --filter=tree:0 origin 'refs/heads/3.*:refs/heads/3.*'
-          echo "versions=$(git branch | head -n 8 | shuf | xargs echo -n | jq --raw-input --slurp --compact-output 'split(" ")|.[0:2]')" | tee -a $GITHUB_OUTPUT
+          echo "versions=$(git branch | head -n 2| shuf | xargs echo -n | jq --raw-input --slurp --compact-output 'split(" ")|.[0:2]')" | tee -a $GITHUB_OUTPUT
   build:
     runs-on: ubuntu-22.04
     needs: version_enumeration
