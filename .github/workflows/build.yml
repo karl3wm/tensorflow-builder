@@ -13,9 +13,6 @@ jobs:
         python: ['3.11', '3.12']
         tensorflow_latest: [1, 2, 3, 4, 5, 6, 7, 8]
         #tensorflow: ['2.18.1'] # git tag --list --sort=-creatordate 'v*.[0-9]'
-    outputs:
-      tensorflow: ${{ steps.generated.outputs.TENSORFLOW_VERSION }}
-      python: ${{ steps.setup_python.outputs.python-version }}
     steps:
       - name: Set up Python ${{ matrix.python }}
         id: setup_python
@@ -190,19 +187,19 @@ jobs:
       - name: Download wheel artifact from build job
         uses: actions/download-artifact@v4
         with:
-          name: tensorflow-noavx-tf${{ jobs.build.outputs.tensorflow }}-py${{ jobs.build.outputs.python }}
+          name: tensorflow-noavx-tf${{ steps.generated.outputs.TENSORFLOW_VERSION }}-py${{ steps.setup_python.outputs.python-version }}
           path: dist
       - name: Display structure of downloaded files
         run: ls -R dist
       - name: Create GitHub Release and Upload Wheel
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: tf-v${{ jobs.build.outputs.tensorflow }}-noavx-py${{ jobs.build.outputs.python }}-build${{ github.run_id }}
-          name: TensorFlow ${{ jobs.build.outputs.tensorflow }} (No AVX) for Python ${{ matrix.python }}
+          tag_name: tf-v${{ steps.generated.outputs.TENSORFLOW_VERSION }}-noavx-py${{ steps.setup_python.outputs.python-version }}-build${{ github.run_id }}
+          name: TensorFlow ${{ steps.generated.outputs.TENSORFLOW_VERSION }} (No AVX) for Python ${{ matrix.python }}
           body: |
             TensorFlow wheel built from source without AVX/AVX2 instructions.
-            TensorFlow Version: ${{ jobs.build.outputs.tensorflow }}
-            Python Version: ${{ jobs.build.outputs.python }}
+            TensorFlow Version: ${{ steps.generated.outputs.TENSORFLOW_VERSION }}
+            Python Version: ${{ steps.setup_python.outputs.python-version }}
             Target Architecture Flags: -march=nehalem -mno-avx -mno-avx2
             Built via GitHub Actions run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
             Bazel Version Used: ${{ needs.build.outputs.bazel_version }} # Needs output from build job
@@ -224,7 +221,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           # Must match the upload name in the 'build' job
-          name: tensorflow-noavx-${{ jobs.build.outputs.tensorflow }}-py${{ jobs.build.outputs.python }}
+          name: tensorflow-noavx-${{ steps.generated.outputs.TENSORFLOW_VERSION }}-py${{ steps.setup_python.outputs.python-version }}
           # Download to a temporary directory
           path: ./wheel-artifact
       - name: List downloaded artifact contents
