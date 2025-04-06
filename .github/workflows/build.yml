@@ -29,7 +29,7 @@ jobs:
       - name: Fetch recent Python versions
         id: python
         run: |
-          echo "versions=$(wget -O - https://endoflife.date/api/python.json | jq '[.[0:8].cycle]')" | tee -a $GITHUB_OUTPUT
+          echo "versions=$(wget -O - https://endoflife.date/api/python.json | jq '[.[0:8][].cycle]')" | tee -a $GITHUB_OUTPUT
   build:
     runs-on: ubuntu-22.04
     needs: version_enumeration
