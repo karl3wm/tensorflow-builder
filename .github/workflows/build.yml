@@ -19,8 +19,6 @@ jobs:
     runs-on: ubuntu-latest
     # Set a longer timeout because TensorFlow builds take a long time
     timeout-minutes: 360 # 6 hours (GitHub Actions maximum for free tier)
-    permissions:
-      actions: write # this allows reuse of the bazel cache
     # Define strategy if you want to build multiple Python versions automatically
     # For now, we use the input python_version for manual runs
     # strategy:
@@ -95,7 +93,7 @@ jobs:
         path: |
           ~/.cache/bazel
           ~/.cache/bazelisk
-        key: bazel-cache-${{ runner.os }}-${{ github.event.inputs.tf_version }}-${{ steps.setup_python.outputs.python-version }}-bazel${{ steps.bazel_version.outputs.bazel_version }}
+        key: bazel-cache-os${{ runner.os }}-tf${{ github.event.inputs.tf_version }}-py${{ steps.setup_python.outputs.python-version }}-bazel${{ steps.bazel_version.outputs.bazel_version }}-run
 
     # - name: Dump Configuration and Environment (Troubleshooting)
     #   run: |
@@ -192,7 +190,7 @@ jobs:
         path: |
           ~/.cache/bazel
           ~/.cache/bazelisk
-        key: bazel-cache-${{ runner.os }}-${{ github.event.inputs.tf_version }}-${{ steps.setup_python.outputs.python-version }}-bazel${{ steps.bazel_version.outputs.bazel_version }}
+        key: bazel-cache-os${{ runner.os }}-tf${{ github.event.inputs.tf_version }}-py${{ steps.setup_python.outputs.python-version }}-bazel${{ steps.bazel_version.outputs.bazel_version }}-run{{github.run_attempt}}
 
     - name: Upload TensorFlow Wheel Artifact
       uses: actions/upload-artifact@v4
