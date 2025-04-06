@@ -44,15 +44,19 @@ jobs:
         python: ${{ fromJSON(needs.version_enumeration.outputs.python) }}
         tensorflow: ${{ fromJSON(needs.version_enumeration.outputs.tensorflow) }}
     steps:
+      - name: Disable man-db/auto-update to speed apt
+        run: |
+          echo "set man-db/auto-update false" | sudo debconf-communicate
+          sudo dpkg-reconfigure man-db
       - name: Set up Python ${{ matrix.python }}
         id: setup_python
         uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python }}
+      - name: Free disk space (Ubuntu)
+        uses: jlumbroso/free-disk-space@main
       - name: Install Build Dependencies
         run: |
-          echo "set man-db/auto-update false" | sudo debconf-communicate
-          sudo dpkg-reconfigure man-db
           . /etc/os-release
           wget --progress=dot:mega https://developer.download.nvidia.com/compute/cuda/repos/ubuntu${VERSION_ID/.}/x86_64/cuda-keyring_1.1-1_all.deb
           sudo dpkg -i cuda-keyring_1.1-1_all.deb
