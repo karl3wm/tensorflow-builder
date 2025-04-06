@@ -97,11 +97,13 @@ jobs:
         run: |
           echo "set man-db/auto-update false" | sudo debconf-communicate
           sudo dpkg-reconfigure man-db
+          wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64/cuda-keyring_1.1-1_all.deb
+          sudo dpkg -i cuda-keyring_1.1-1_all.deb
           #sudo apt-get remove --yes --quiet firefox
           #sudo apt-get remove --yes --quiet firefox clang*
-          #sudo apt-get update --yes --quiet
+          sudo apt-get update --yes --quiet
           #sudo apt-get dist-upgrade --yes --quiet # slows down build
-          sudo apt-get install --yes --quiet build-essential curl git python3-dev pkg-config zip unzip clang lld wget sed
+          sudo apt-get install --yes --quiet cuda-toolkit-12-3 build-essential curl git python3-dev pkg-config zip unzip clang lld wget sed
           echo "Attempting to install latest Bazelisk"
           mkdir -p $HOME/bin
           wget --progress=dot:mega https://github.com/bazelbuild/bazelisk/releases/latest/download/bazelisk-linux-amd64 -O $HOME/bin/bazel
