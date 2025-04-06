@@ -9,6 +9,8 @@ on:
     paths:
       - '.github/workflows/**' # Only run if workflow files change
 jobs:
+  # this example gives the current existing python releases. other object properties give eol status or latest minor versions
+  # wget -O - https://endoflife.date/api/python.json | jq '[.[].cycle]'
   recent_tensorflow_tags:
     runs-on: ubuntu-22.04
     outputs:
