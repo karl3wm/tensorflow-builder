@@ -33,7 +33,7 @@ jobs:
           #echo "Selected TensorFlow $ref"
           #echo "version=${ref#v}" >> $GITHUB_OUTPUT
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     needs: recent_tensorflow_tags
     timeout-minutes: 360 # 6 hours (GitHub Actions maximum for free tier)
     strategy:
@@ -237,7 +237,7 @@ jobs:
   # Optional: Job to create a GitHub Release and upload the wheel there
   release:
     needs: build
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     if: success() && (github.event_name == 'workflow_dispatch') # Only release on successful manual runs for now
     steps:
       - name: Download wheel artifact from build job
@@ -266,7 +266,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   publish-to-pages:
     needs: build # Run only after the build job succeeds
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     # Only publish on manual triggers or scheduled runs that succeed
     if: success() && (github.event_name == 'workflow_dispatch' || github.event_name == 'schedule')
     # Grant permissions for actions/checkout to push to gh-pages branch
