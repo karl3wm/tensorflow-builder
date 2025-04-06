@@ -53,7 +53,7 @@ jobs:
           echo "set man-db/auto-update false" | sudo debconf-communicate
           sudo dpkg-reconfigure man-db
           . /etc/os-release
-          wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu${VERSION_ID/.}/x86_64/cuda-keyring_1.1-1_all.deb
+          wget --progress=dot:mega https://developer.download.nvidia.com/compute/cuda/repos/ubuntu${VERSION_ID/.}/x86_64/cuda-keyring_1.1-1_all.deb
           sudo dpkg -i cuda-keyring_1.1-1_all.deb
           sudo apt-get update --yes --quiet
           sudo apt-get remove --yes --quiet firefox clang*
