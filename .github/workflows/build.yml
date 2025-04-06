@@ -123,6 +123,7 @@ jobs:
         PYTHON_BIN_PATH: ${{ steps.python_details.outputs.PYTHON_BIN_PATH }}
         PYTHON_LIB_PATH: ${{ steps.python_details.outputs.PYTHON_LIB_PATH }}
         TF_PYTHON_VERSION: ${{ steps.python_details.outputs.TF_PYTHON_VERSION }}
+        HERMETIC_PYTHON_VERSION: ${{ steps.python_details.outputs.TF_PYTHON_VERSION }}
         TF_ENABLE_XLA: '1'
         TF_NEED_CUDA: '0'
         TF_NEED_ROCM: '0'
