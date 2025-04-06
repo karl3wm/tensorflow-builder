@@ -139,7 +139,6 @@ jobs:
           OS_TYPE: ubuntu # ubuntu macos
           IS_NIGHTLY: 0
           TF_PROJECT_NAME: "tensorflow_noavx"
-          TF_PIP_TEST_ROOT: .
           KOKORO_ARTIFACTS_DIR: ../tmp
           TF_TEST_FLAGS:
           TF_TESTS_FILTER_TAGS:
