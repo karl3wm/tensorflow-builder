@@ -15,6 +15,9 @@ jobs:
         python: ['3.11', '3.12']
         tensorflow_latest: [1, 2, 3, 4, 5, 6, 7, 8]
         #tensorflow: ['2.18.1'] # git tag --list --sort=-creatordate 'v*.[0-9]'
+     outputs:
+      tensorflow: ${{ steps.generated.outputs.TENSORFLOW_VERSION }}
+      python: ${{ steps.setup_python.outputs.python-version }}
 
     - name: Set up Python ${{ matrix.python }}
       id: setup_python
@@ -183,7 +186,7 @@ jobs:
         path: |
           ~/.cache/bazel
           ~/.cache/bazelisk
-        key: bazel-cache-os${{ runner.os }}-tf${{ steps.generated.outputs.TENSORFLOW_VERSION }}-py${{ steps.setup_python.outputs.python-version }}-bazel${{ steps.bazel_version.outputs.bazel_version }}-run{{github.run_attempt}}
+        key: bazel-cache-os${{ runner.os }}-tf${{ steps.generated.outputs.TENSORFLOW_VERSION }}-py${{ steps.setup_python.outputs.python-version }}-bazel${{ steps.bazel_version.outputs.bazel_version }}-run{{github.run_id}.{{github.run_attempt}}
 
     - name: Upload TensorFlow Wheel Artifact
       uses: actions/upload-artifact@v4
@@ -202,7 +205,7 @@ jobs:
       - name: Download wheel artifact from build job
         uses: actions/download-artifact@v4
         with:
-          name: tensorflow-noavx-tf${{ steps.generated.outputs.TENSORFLOW_VERSION }}-py${{ steps.setup_python.outputs.python-version }}
+          name: tensorflow-noavx-tf${{ jobs.build.outputs.tensorflow }}-py${{ jobs.build.outputs.python }}
           path: dist
 
       - name: Display structure of downloaded files
@@ -211,12 +214,12 @@ jobs:
       - name: Create GitHub Release and Upload Wheel
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: tf-v${{ steps.generated.outputs.TENSORFLOW_VERSION }}-noavx-py${{ steps.setup_python.outputs.python-version }}-build${{ github.run_id }}
-          name: TensorFlow ${{ steps.generated.outputs.TENSORFLOW_VERSION }} (No AVX) for Python ${{ matrix.python }}
+          tag_name: tf-v${{ jobs.build.outputs.tensorflow }}-noavx-py${{ jobs.build.outputs.python }}-build${{ github.run_id }}
+          name: TensorFlow ${{ jobs.build.outputs.tensorflow }} (No AVX) for Python ${{ matrix.python }}
           body: |
             TensorFlow wheel built from source without AVX/AVX2 instructions.
-            TensorFlow Version: ${{ steps.generated.outputs.TENSORFLOW_VERSION }}
-            Python Version: ${{ matrix.python }}
+            TensorFlow Version: ${{ jobs.build.outputs.tensorflow }}
+            Python Version: ${{ jobs.build.outputs.python }}
             Target Architecture Flags: -march=nehalem -mno-avx -mno-avx2
             Built via GitHub Actions run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
             Bazel Version Used: ${{ needs.build.outputs.bazel_version }} # Needs output from build job
@@ -224,4 +227,100 @@ jobs:
           draft: false
           prerelease: false
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }
+
+  publish-to-pages:
+    needs: build # Run only after the build job succeeds
+    runs-on: ubuntu-latest
+    # Only publish on manual triggers or scheduled runs that succeed
+    if: success() && (github.event_name == 'workflow_dispatch' || github.event_name == 'schedule')
+
+    # Grant permissions for actions/checkout to push to gh-pages branch
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download wheel artifact from build job
+        uses: actions/download-artifact@v4
+        with:
+          # Must match the upload name in the 'build' job
+          name: tensorflow-noavx-${{ jobs.build.outputs.tensorflow }}-py${{ jobs.build.outputs.python }}
+          # Download to a temporary directory
+          path: ./wheel-artifact
+
+      - name: List downloaded artifact contents
+        run: ls -R ./wheel-artifact
+
+      - name: Checkout GitHub Pages branch
+        uses: actions/checkout@v4
+        with:
+          ref: gh-pages # The branch to publish to
+          path: gh-pages # Checkout to a specific directory
+
+      - name: Set up Python (for potential scripting)
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'
+
+      - name: Create PEP 503 structure and update index
+        shell: bash # Use bash for scripting
+        run: |
+          set -e # Exit immediately if a command exits with a non-zero status.
+
+          # Define directories relative to the checked-out gh-pages directory
+          PAGES_DIR="gh-pages"
+          SIMPLE_DIR="$PAGES_DIR/simple"
+          PKG_DIR="$SIMPLE_DIR/tensorflow" # Package name is 'tensorflow'
+
+          echo "Ensuring package directory exists: $PKG_DIR"
+          mkdir -p "$PKG_DIR"
+
+          echo "Moving wheel file(s)..."
+          # Find the wheel file (handle potential multiple wheels if matrix is used later)
+          find ./wheel-artifact -name "*.whl" -exec mv {} "$PKG_DIR/" \;
+
+          echo "Generating simple index: $SIMPLE_DIR/index.html"
+          # This index just needs to list the package names available
+          cat <<EOF > "$SIMPLE_DIR/index.html"
+          <!DOCTYPE html>
+          <html>
+            <head>
+              <title>Simple Index</title>
+            </head>
+            <body>
+              <a href="tensorflow/">tensorflow</a><br />
+            </body>
+          </html>
+          EOF
+
+          echo "Generating package index: $PKG_DIR/index.html"
+          # This index lists all the wheel files for the 'tensorflow' package
+          # Important: Links must be relative to the index file itself
+          echo '<!DOCTYPE html><html><head><title>Links for tensorflow</title></head><body><h1>Links for tensorflow</h1>' > "$PKG_DIR/index.html"
+          for filename in "$PKG_DIR"/*.whl; do
+            # Extract just the filename for the link text and href
+            wheel_name=$(basename "$filename")
+            echo "Found wheel: $wheel_name"
+            # Append link to the index file
+            echo "<a href=\"$wheel_name\">$wheel_name</a><br />" >> "$PKG_DIR/index.html"
+          done
+          echo '</body></html>' >> "$PKG_DIR/index.html"
+
+          echo "Index files generated."
+          ls -lR "$PAGES_DIR"
+
+      - name: Commit and push changes to gh-pages
+        run: |
+          cd gh-pages
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          # Add all changes (new wheels, updated index files)
+          git add .
+          # Commit only if there are changes
+          if git diff --staged --quiet; then
+            echo "No changes to commit."
+          else
+            git commit -m "Add/update TensorFlow wheel(s) and index [skip ci]"
+            git push origin gh-pages
+            echo "Changes pushed to gh-pages branch."
+          fi
