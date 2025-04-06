@@ -61,7 +61,7 @@ jobs:
           sudo apt-get remove --yes --quiet firefox clang*
           #sudo apt-get update --yes --quiet
           #sudo apt-get dist-upgrade --yes --quiet # slows down build
-          sudo apt-get install --yes --quiet build-essential curl git python3-dev pkg-config zip unzip clang-17 lld wget
+          sudo apt-get install --yes --quiet build-essential curl git python3-dev pkg-config zip unzip clang-17 lld wget sed
           BAZEL_VERSION=${{ steps.bazel_version.outputs.bazel_version }}
           echo "Attempting to install Bazel version: $BAZEL_VERSION"
           wget --progress=dot:mega https://github.com/bazelbuild/bazel/releases/download/${BAZEL_VERSION}/bazel-${BAZEL_VERSION}-installer-linux-x86_64.sh
@@ -153,7 +153,10 @@ jobs:
           printenv | grep CC_OPT_FLAGS # Show compiler flags being used
           ./configure
           echo "Configure finished."
+          echo "Migrating build_pip_package vs build_pip_package_py ..."
+
           echo "Starting Bazel build and creating wheel file ..."
+          find -name build_pip_package.py && sed -i 's!PIP_BUILD_TARGET="//tensorflow/tools/pip_package:build_pip_package"!PIP_BUILD_TARGET="//tensorflow/tools/pip_package:build_pip_package_py"' tensorflow/tools/ci_build/builds/pip_new.sh
           . tensorflow/tools/ci_build/builds/pip_new.sh
 
           #echo "Bazel build finished. Creating wheel file..."
