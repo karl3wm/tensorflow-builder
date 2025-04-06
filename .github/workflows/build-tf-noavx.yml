@@ -52,14 +52,16 @@ jobs:
 
     - name: Install Build Dependencies (Tools, Clang, LLD - Defer Bazel)
       run: |
+        sudo snap disable firefox
+        sudo snap remove --purge firefox
         sudo apt-get update -y
         sudo apt-get dist-upgrade -y
         sudo apt-get install -y build-essential curl git python3-dev pkg-config zip unzip clang lld wget
 
     - name: Determine Bazel Version
       id: bazel_version
+      working-directory: ./tensorflow
       run: |
-        cd tensorflow
         if [[ -f ".bazelversion" ]]; then
           BAZEL_VERSION_FROM_FILE=$(cat .bazelversion | head -n 1)
           echo "Found .bazelversion, using Bazel version: $BAZEL_VERSION_FROM_FILE"
@@ -72,7 +74,6 @@ jobs:
           echo "Using fallback Bazel version: $DEFAULT_BAZEL_VERSION"
           echo "bazel_version=$DEFAULT_BAZEL_VERSION" >> $GITHUB_OUTPUT
         fi
-        cd ..
 
     - name: Install Specific Bazel Version
       run: |
@@ -120,8 +121,8 @@ jobs:
     #     echo "--- Python Site Packages ---"
     #     ls -l ${{ steps.python_details.outputs.PYTHON_LIB_PATH }} || echo "Could not list site-packages"
 
-    - name: Configure TensorFlow (Inside TF Directory)
-      working-directory: ./tensorflow # Run commands inside the checked-out TF directory
+    - name: Configure TensorFlow
+      working-directory: ./tensorflow
       env:
         # Environment variables for TensorFlow's configure script (non-interactive)
         PYTHON_BIN_PATH: ${{ steps.python_details.outputs.PYTHON_BIN_PATH }}
