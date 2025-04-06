@@ -154,14 +154,15 @@ jobs:
             --copt=-mno-avx2 \
             --copt=-O3 \
             --verbose_failures \
-            //tensorflow/tools/pip_package:wheel
+            tensorflow/tools/pip_package:build_pip_package
+            #//tensorflow/tools/pip_package:wheel
             # Build the pip package with enhanced verbosity
             # --toolchain_resolution_debug=@bazel_tools//tools/cpp:toolchain_type \
             # --subcommands \
 
           echo "Bazel build finished. Creating wheel file..."
           # Create the wheel package in /tmp/tensorflow_pkg (relative to workspace root)
-          ./bazel-bin/tensorflow/tools/pip_package/build_pip_package ../tmp/tensorflow_pkg
+          ./bazel-bin/tensorflow/tools/pip_package/build_pip_package --cpu ../tmp/tensorflow_pkg
 
           echo "Wheel file created in ../tmp/tensorflow_pkg:"
           ls ../tmp/tensorflow_pkg/*.whl
