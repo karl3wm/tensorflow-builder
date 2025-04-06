@@ -159,8 +159,8 @@ jobs:
       timeout-minutes: 60 # Adjust timeout for debugging session
     # ---------------------------------------------------------------------
 
-    - name: Build TensorFlow Wheel (Inside TF Directory)
-      working-directory: ./tensorflow # Run commands inside the checked-out TF directory
+    - name: Build TensorFlow Wheel
+      working-directory: ./tensorflow
       run: |
         echo "Starting Bazel build..."
         bazel build \
