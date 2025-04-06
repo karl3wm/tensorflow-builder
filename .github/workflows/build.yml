@@ -68,10 +68,10 @@ jobs:
 
     - name: Install Build Dependencies
       run: |
-        sudo apt-get update -y
-        sudo apt-get remove -y firefox
-        sudo apt-get dist-upgrade -y
-        sudo apt-get install -y build-essential curl git python3-dev pkg-config zip unzip clang-17 lld wget
+        sudo apt-get update --yes --quiet
+        sudo apt-get remove --yes --quiet firefox
+        sudo apt-get dist-upgrade --yes --quiet
+        sudo apt-get install --yes --quiet build-essential curl git python3-dev pkg-config zip unzip clang-17 lld wget
         BAZEL_VERSION=${{ steps.bazel_version.outputs.bazel_version }}
         echo "Attempting to install Bazel version: $BAZEL_VERSION"
         wget --progress=dot:mega https://github.com/bazelbuild/bazel/releases/download/${BAZEL_VERSION}/bazel-${BAZEL_VERSION}-installer-linux-x86_64.sh
