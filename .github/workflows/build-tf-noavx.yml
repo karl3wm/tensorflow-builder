@@ -1,4 +1,4 @@
-name: Build TensorFlow (No AVX) - Debug Enhanced
+name: Build
 
 on:
   workflow_dispatch: # Allows manual triggering from the Actions tab
@@ -159,9 +159,9 @@ jobs:
     # Tmate Debugging Step - uncomment/comment as needed
     # This will pause the workflow and output SSH connection details
     # Connect to the runner to manually inspect the environment and run commands
-    - name: Setup tmate session for debugging
-      uses: mxschmitt/action-tmate@v3
-      timeout-minutes: 120 # Adjust timeout for debugging session
+    # - name: Setup tmate session for debugging
+    #   uses: mxschmitt/action-tmate@v3
+    #   timeout-minutes: 60 # Adjust timeout for debugging session
     # ---------------------------------------------------------------------
 
     - name: Build TensorFlow Wheel (Inside TF Directory)
@@ -176,10 +176,10 @@ jobs:
           --copt=-mno-avx2 \
           --copt=-O3 \
           --verbose_failures \
+          --toolchain_resolution_debug=@bazel_tools//tools/cpp:toolchain_type \
+          --subcommands \
           //tensorflow/tools/pip_package:build_pip_package
           # Build the pip package with enhanced verbosity
-          #--toolchain_resolution_debug=@bazel_tools//tools/cpp:toolchain_type \
-          #--subcommands \
 
         echo "Bazel build finished. Creating wheel file..."
         # Create the wheel package in /tmp/tensorflow_pkg (relative to workspace root)
