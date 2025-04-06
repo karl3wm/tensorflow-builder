@@ -150,6 +150,7 @@ jobs:
       working-directory: ./tensorflow
       env:
         HERMETIC_PYTHON_VERSION: ${{ steps.python_details.outputs.TF_PYTHON_VERSION }}
+        WHEEL_NAME: tensorflow_noavx_cpu
       run: |
         echo "Starting Bazel build..."
         bazel build \
@@ -160,7 +161,7 @@ jobs:
           --copt=-mno-avx2 \
           --copt=-O3 \
           --verbose_failures \
-          //tensorflow/tools/pip_package:wheel --repo_env=WHEEL_NAME=tensorflow_noavx_cpu
+          //tensorflow/tools/pip_package:wheel
           # Build the pip package with enhanced verbosity
           # --toolchain_resolution_debug=@bazel_tools//tools/cpp:toolchain_type \
           # --subcommands \
