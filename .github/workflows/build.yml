@@ -52,8 +52,6 @@ jobs:
 
     - name: Install Build Dependencies (Tools, Clang, LLD - Defer Bazel)
       run: |
-        sudo snap disable firefox
-        sudo snap remove --purge firefox
         sudo apt-get update -y
         sudo apt-get dist-upgrade -y
         sudo apt-get install -y build-essential curl git python3-dev pkg-config zip unzip clang lld wget
