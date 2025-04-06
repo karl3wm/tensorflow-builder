@@ -1,10 +1,8 @@
 name: Build
-
 on:
   workflow_dispatch: # Allows manual triggering from the Actions tab
   schedule: # Example: Run weekly on Sunday at 03:00 UTC
     - cron: '0 3 * * 0'
-
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -18,184 +16,171 @@ jobs:
     outputs:
       tensorflow: ${{ steps.generated.outputs.TENSORFLOW_VERSION }}
       python: ${{ steps.setup_python.outputs.python-version }}
-
     steps:
-    - name: Set up Python ${{ matrix.python }}
-      id: setup_python
-      uses: actions/setup-python@v4
-      with:
-        python-version: ${{ matrix.python }}
+      - name: Set up Python ${{ matrix.python }}
+        id: setup_python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Checkout TensorFlow Source Code
+        uses: actions/checkout@v4
+        with:
+          repository: 'tensorflow/tensorflow'
+          path: 'tensorflow'
+          filter: 'blob:none'
+      # These outputs are used later in the run
+      - name: Generate values available at runtime
+        id: generated
+        working-directory: ./tensorflow
+        run: |
+          echo "PYTHON_BIN_PATH=$(which python)" >> $GITHUB_OUTPUT
+          echo "PYTHON_LIB_PATH=$(python -c 'import site; print(site.getsitepackages()[0])')" >> $GITHUB_OUTPUT
+          echo "TF_PYTHON_VERSION=$(python -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')" >> $GITHUB_OUTPUT
+          TENSORFLOW_REF="$(git tag --list --sort=-creatordate 'v*.[0-9]' | head -n {{ matrix.tensorflow_latest }} | tail -n 1)"
+          git checkout "$TENSORFLOW_REF"
+          echo "TENSORFLOW_VERSION=${TENSORFLOW_REF#v}" >> $GITHUB_OUTPUT
+      - name: Determine Bazel Version
+        id: bazel_version
+        working-directory: ./tensorflow
+        run: |
+          if [[ -f ".bazelversion" ]]; then
+            BAZEL_VERSION_FROM_FILE=$(cat .bazelversion | head -n 1)
+            echo "Found .bazelversion, using Bazel version: $BAZEL_VERSION_FROM_FILE"
+            echo "bazel_version=$BAZEL_VERSION_FROM_FILE" >> $GITHUB_OUTPUT
+          else
+            # --- Fallback Bazel Version ---
+            # Choose a version known to work with recent TF if .bazelversion is missing
+            DEFAULT_BAZEL_VERSION="6.1.0"
+            echo "WARN: .bazelversion not found in TF source for tag v${{ steps.generated.outputs.TENSORFLOW_VERSION }}."
+            echo "Using fallback Bazel version: $DEFAULT_BAZEL_VERSION"
+            echo "bazel_version=$DEFAULT_BAZEL_VERSION" >> $GITHUB_OUTPUT
+          fi
+      - name: Install Build Dependencies
+        run: |
+          sudo apt-get remove --yes --quiet firefox clang*
+          #sudo apt-get update --yes --quiet
+          #sudo apt-get dist-upgrade --yes --quiet # slows down build
+          sudo apt-get install --yes --quiet build-essential curl git python3-dev pkg-config zip unzip clang-17 lld wget
+          BAZEL_VERSION=${{ steps.bazel_version.outputs.bazel_version }}
+          echo "Attempting to install Bazel version: $BAZEL_VERSION"
+          wget --progress=dot:mega https://github.com/bazelbuild/bazel/releases/download/${BAZEL_VERSION}/bazel-${BAZEL_VERSION}-installer-linux-x86_64.sh
+          chmod +x bazel-${BAZEL_VERSION}-installer-linux-x86_64.sh
+          # Using --user installs to $HOME/bin
+          ./bazel-${BAZEL_VERSION}-installer-linux-x86_64.sh --user
+          rm bazel-${BAZEL_VERSION}-installer-linux-x86_64.sh
+          # Add bazel to PATH for subsequent steps
+          echo "$HOME/bin" >> $GITHUB_PATH
+          echo "Bazel installation complete. Checking version:"
+          bazel --version
+      - name: Restore Bazel Cache
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            ~/.cache/bazel
+            ~/.cache/bazelisk
+          key: bazel-cache-os${{ runner.os }}-tf${{ steps.generated.outputs.TENSORFLOW_VERSION }}-py${{ steps.setup_python.outputs.python-version }}-bazel${{ steps.bazel_version.outputs.bazel_version }}-run
+      # - name: Dump Configuration and Environment (Troubleshooting)
+      #   run: |
+      #     echo "--- System Info ---"
+      #     uname -a
+      #     lsb_release -a
+      #     echo "--- Tool Versions ---"
+      #     python --version
+      #     pip --version
+      #     bazel version || echo "Bazel not found or failed"
+      #     gcc --version || echo "GCC not found or failed"
+      #     g++ --version || echo "G++ not found or failed"
+      #     clang --version || echo "Clang not found or failed"
+      #     ldd --version || echo "ldd not found or failed" # GNU ld version
+      #     ld.lld --version || echo "ld.lld not found or failed" # LLVM linker version
+      #     echo "--- Key Environment Variables ---"
+      #     echo "PATH=$PATH"
+      #     echo "PYTHON_BIN_PATH=${{ steps.generated.outputs.PYTHON_BIN_PATH }}"
+      #     echo "PYTHON_LIB_PATH=${{ steps.generated.outputs.PYTHON_LIB_PATH }}"
+      #     echo "TF_PYTHON_VERSION=${{ steps.generated.outputs.TF_PYTHON_VERSION }}"
+      #     printenv | grep TF_ || echo "No TF_ environment variables set yet"
+      #     printenv | grep CC_ || echo "No CC_ environment variables set yet"
+      #     echo "--- Python Site Packages ---"
+      #     ls -l ${{ steps.generated.outputs.PYTHON_LIB_PATH }} || echo "Could not list site-packages"
+      - name: Configure TensorFlow
+        working-directory: ./tensorflow
+        env:
+          # Environment variables for TensorFlow's configure script (non-interactive)
+          PYTHON_BIN_PATH: ${{ steps.generated.outputs.PYTHON_BIN_PATH }}
+          PYTHON_LIB_PATH: ${{ steps.generated.outputs.PYTHON_LIB_PATH }}
+          TF_PYTHON_VERSION: ${{ steps.generated.outputs.TF_PYTHON_VERSION }}
+          TF_ENABLE_XLA: '1'
+          TF_NEED_CUDA: '0'
+          TF_NEED_ROCM: '0'
+          # Let Bazel decide on Clang download/use by default
+          # TF_DOWNLOAD_CLANG: '0'
+          # Remove explicit GCC paths to allow Bazel to potentially pick Clang
+          # GCC_HOST_COMPILER_PATH: /usr/bin/gcc
+          # HOST_CXX_COMPILER_PATH: /usr/bin/g++
+          TF_CONFIGURE_IOS: '0'
+          TF_SET_ANDROID_WORKSPACE: '0'
+          # --- CRUCIAL: Compiler flags to disable AVX/AVX2 ---
+          # Target Nehalem (SSE4.2 baseline before AVX). Adjust if needed.
+          CC_OPT_FLAGS: '-march=nehalem -mno-avx -mno-avx2 -O3'
+          TF_NEED_OPENCL_SYCL: '0'
+          TF_NEED_COMPUTECPP: '0'
+          TF_NEED_MPI: '0'
+          TF_NEED_TENSORRT: '0'
+        run: |
+          echo "Running ./configure with environment variables:"
+          printenv | grep TF_ # Show TF vars being used
+          printenv | grep CC_OPT_FLAGS # Show compiler flags being used
+          ./configure
+          echo "Configure finished."
+      # ---------------------------------------------------------------------
+      # Tmate Debugging Step - uncomment/comment as needed
+      # This will pause the workflow and output SSH connection details
+      # Connect to the runner to manually inspect the environment and run commands
+      # - name: Setup tmate session for debugging
+      #   uses: mxschmitt/action-tmate@v3
+      #   timeout-minutes: 60
+      # ---------------------------------------------------------------------
+      - name: Build TensorFlow Wheel
+        working-directory: ./tensorflow
+        env:
+          HERMETIC_PYTHON_VERSION: ${{ steps.generated.outputs.TF_PYTHON_VERSION }}
+          WHEEL_NAME: tensorflow_noavx_cpu
+        run: |
+          echo "Starting Bazel build..."
+          bazel build \
+            --config=opt \
+            --config=monolithic \
+            --copt=-march=nehalem \
+            --copt=-mno-avx \
+            --copt=-mno-avx2 \
+            --copt=-O3 \
+            --verbose_failures \
+            //tensorflow/tools/pip_package:wheel
+            # Build the pip package with enhanced verbosity
+            # --toolchain_resolution_debug=@bazel_tools//tools/cpp:toolchain_type \
+            # --subcommands \
 
-    - name: Checkout TensorFlow Source Code
-      uses: actions/checkout@v4
-      with:
-        repository: 'tensorflow/tensorflow'
-        path: 'tensorflow'
-        filter: 'blob:none'
+          echo "Bazel build finished. Creating wheel file..."
+          # Create the wheel package in /tmp/tensorflow_pkg (relative to workspace root)
+          ./bazel-bin/tensorflow/tools/pip_package/build_pip_package ../tmp/tensorflow_pkg
 
-    # These outputs are used later in the run
-    - name: Generate values available at runtime
-      id: generated
-      working-directory: ./tensorflow
-      run: |
-        echo "PYTHON_BIN_PATH=$(which python)" >> $GITHUB_OUTPUT
-        echo "PYTHON_LIB_PATH=$(python -c 'import site; print(site.getsitepackages()[0])')" >> $GITHUB_OUTPUT
-        echo "TF_PYTHON_VERSION=$(python -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')" >> $GITHUB_OUTPUT
-        TENSORFLOW_REF="$(git tag --list --sort=-creatordate 'v*.[0-9]' | head -n {{ matrix.tensorflow_latest }} | tail -n 1)"
-        git checkout "$TENSORFLOW_REF"
-        echo "TENSORFLOW_VERSION=${TENSORFLOW_REF#v}" >> $GITHUB_OUTPUT
-
-    - name: Determine Bazel Version
-      id: bazel_version
-      working-directory: ./tensorflow
-      run: |
-        if [[ -f ".bazelversion" ]]; then
-          BAZEL_VERSION_FROM_FILE=$(cat .bazelversion | head -n 1)
-          echo "Found .bazelversion, using Bazel version: $BAZEL_VERSION_FROM_FILE"
-          echo "bazel_version=$BAZEL_VERSION_FROM_FILE" >> $GITHUB_OUTPUT
-        else
-          # --- Fallback Bazel Version ---
-          # Choose a version known to work with recent TF if .bazelversion is missing
-          DEFAULT_BAZEL_VERSION="6.1.0"
-          echo "WARN: .bazelversion not found in TF source for tag v${{ steps.generated.outputs.TENSORFLOW_VERSION }}."
-          echo "Using fallback Bazel version: $DEFAULT_BAZEL_VERSION"
-          echo "bazel_version=$DEFAULT_BAZEL_VERSION" >> $GITHUB_OUTPUT
-        fi
-
-    - name: Install Build Dependencies
-      run: |
-        sudo apt-get remove --yes --quiet firefox clang*
-        #sudo apt-get update --yes --quiet
-        #sudo apt-get dist-upgrade --yes --quiet # slows down build
-        sudo apt-get install --yes --quiet build-essential curl git python3-dev pkg-config zip unzip clang-17 lld wget
-        BAZEL_VERSION=${{ steps.bazel_version.outputs.bazel_version }}
-        echo "Attempting to install Bazel version: $BAZEL_VERSION"
-        wget --progress=dot:mega https://github.com/bazelbuild/bazel/releases/download/${BAZEL_VERSION}/bazel-${BAZEL_VERSION}-installer-linux-x86_64.sh
-        chmod +x bazel-${BAZEL_VERSION}-installer-linux-x86_64.sh
-        # Using --user installs to $HOME/bin
-        ./bazel-${BAZEL_VERSION}-installer-linux-x86_64.sh --user
-        rm bazel-${BAZEL_VERSION}-installer-linux-x86_64.sh
-        # Add bazel to PATH for subsequent steps
-        echo "$HOME/bin" >> $GITHUB_PATH
-        echo "Bazel installation complete. Checking version:"
-        bazel --version
-
-    - name: Restore Bazel Cache
-      uses: actions/cache/restore@v4
-      with:
-        path: |
-          ~/.cache/bazel
-          ~/.cache/bazelisk
-        key: bazel-cache-os${{ runner.os }}-tf${{ steps.generated.outputs.TENSORFLOW_VERSION }}-py${{ steps.setup_python.outputs.python-version }}-bazel${{ steps.bazel_version.outputs.bazel_version }}-run
-
-    # - name: Dump Configuration and Environment (Troubleshooting)
-    #   run: |
-    #     echo "--- System Info ---"
-    #     uname -a
-    #     lsb_release -a
-    #     echo "--- Tool Versions ---"
-    #     python --version
-    #     pip --version
-    #     bazel version || echo "Bazel not found or failed"
-    #     gcc --version || echo "GCC not found or failed"
-    #     g++ --version || echo "G++ not found or failed"
-    #     clang --version || echo "Clang not found or failed"
-    #     ldd --version || echo "ldd not found or failed" # GNU ld version
-    #     ld.lld --version || echo "ld.lld not found or failed" # LLVM linker version
-    #     echo "--- Key Environment Variables ---"
-    #     echo "PATH=$PATH"
-    #     echo "PYTHON_BIN_PATH=${{ steps.generated.outputs.PYTHON_BIN_PATH }}"
-    #     echo "PYTHON_LIB_PATH=${{ steps.generated.outputs.PYTHON_LIB_PATH }}"
-    #     echo "TF_PYTHON_VERSION=${{ steps.generated.outputs.TF_PYTHON_VERSION }}"
-    #     printenv | grep TF_ || echo "No TF_ environment variables set yet"
-    #     printenv | grep CC_ || echo "No CC_ environment variables set yet"
-    #     echo "--- Python Site Packages ---"
-    #     ls -l ${{ steps.generated.outputs.PYTHON_LIB_PATH }} || echo "Could not list site-packages"
-
-    - name: Configure TensorFlow
-      working-directory: ./tensorflow
-      env:
-        # Environment variables for TensorFlow's configure script (non-interactive)
-        PYTHON_BIN_PATH: ${{ steps.generated.outputs.PYTHON_BIN_PATH }}
-        PYTHON_LIB_PATH: ${{ steps.generated.outputs.PYTHON_LIB_PATH }}
-        TF_PYTHON_VERSION: ${{ steps.generated.outputs.TF_PYTHON_VERSION }}
-        TF_ENABLE_XLA: '1'
-        TF_NEED_CUDA: '0'
-        TF_NEED_ROCM: '0'
-        # Let Bazel decide on Clang download/use by default
-        # TF_DOWNLOAD_CLANG: '0'
-        # Remove explicit GCC paths to allow Bazel to potentially pick Clang
-        # GCC_HOST_COMPILER_PATH: /usr/bin/gcc
-        # HOST_CXX_COMPILER_PATH: /usr/bin/g++
-        TF_CONFIGURE_IOS: '0'
-        TF_SET_ANDROID_WORKSPACE: '0'
-        # --- CRUCIAL: Compiler flags to disable AVX/AVX2 ---
-        # Target Nehalem (SSE4.2 baseline before AVX). Adjust if needed.
-        CC_OPT_FLAGS: '-march=nehalem -mno-avx -mno-avx2 -O3'
-        TF_NEED_OPENCL_SYCL: '0'
-        TF_NEED_COMPUTECPP: '0'
-        TF_NEED_MPI: '0'
-        TF_NEED_TENSORRT: '0'
-      run: |
-        echo "Running ./configure with environment variables:"
-        printenv | grep TF_ # Show TF vars being used
-        printenv | grep CC_OPT_FLAGS # Show compiler flags being used
-        ./configure
-        echo "Configure finished."
-
-    # ---------------------------------------------------------------------
-    # Tmate Debugging Step - uncomment/comment as needed
-    # This will pause the workflow and output SSH connection details
-    # Connect to the runner to manually inspect the environment and run commands
-    # - name: Setup tmate session for debugging
-    #   uses: mxschmitt/action-tmate@v3
-    #   timeout-minutes: 60
-    # ---------------------------------------------------------------------
-
-    - name: Build TensorFlow Wheel
-      working-directory: ./tensorflow
-      env:
-        HERMETIC_PYTHON_VERSION: ${{ steps.generated.outputs.TF_PYTHON_VERSION }}
-        WHEEL_NAME: tensorflow_noavx_cpu
-      run: |
-        echo "Starting Bazel build..."
-        bazel build \
-          --config=opt \
-          --config=monolithic \
-          --copt=-march=nehalem \
-          --copt=-mno-avx \
-          --copt=-mno-avx2 \
-          --copt=-O3 \
-          --verbose_failures \
-          //tensorflow/tools/pip_package:wheel
-          # Build the pip package with enhanced verbosity
-          # --toolchain_resolution_debug=@bazel_tools//tools/cpp:toolchain_type \
-          # --subcommands \
-
-        echo "Bazel build finished. Creating wheel file..."
-        # Create the wheel package in /tmp/tensorflow_pkg (relative to workspace root)
-        ./bazel-bin/tensorflow/tools/pip_package/build_pip_package ../tmp/tensorflow_pkg
-
-        echo "Wheel file created in ../tmp/tensorflow_pkg:"
-        ls ../tmp/tensorflow_pkg/*.whl
-
-    - name: Always Save Bazel Cache
-      if: always()
-      uses: actions/cache/save@v4
-      with:
-        path: |
-          ~/.cache/bazel
-          ~/.cache/bazelisk
-        key: bazel-cache-os${{ runner.os }}-tf${{ steps.generated.outputs.TENSORFLOW_VERSION }}-py${{ steps.setup_python.outputs.python-version }}-bazel${{ steps.bazel_version.outputs.bazel_version }}-run{{github.run_id}.{{github.run_attempt}}
-
-    - name: Upload TensorFlow Wheel Artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: tensorflow-noavx-tf${{ steps.generated.outputs.TENSORFLOW_VERSION }}-py${{ steps.setup_python.outputs.python-version }}
-        # Path is relative to the workspace root
-        path: tmp/tensorflow_pkg/*.whl
-        retention-days: 7
-
+          echo "Wheel file created in ../tmp/tensorflow_pkg:"
+          ls ../tmp/tensorflow_pkg/*.whl
+      - name: Always Save Bazel Cache
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            ~/.cache/bazel
+            ~/.cache/bazelisk
+          key: bazel-cache-os${{ runner.os }}-tf${{ steps.generated.outputs.TENSORFLOW_VERSION }}-py${{ steps.setup_python.outputs.python-version }}-bazel${{ steps.bazel_version.outputs.bazel_version }}-run{{github.run_id}.{{github.run_attempt}}
+      - name: Upload TensorFlow Wheel Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: tensorflow-noavx-tf${{ steps.generated.outputs.TENSORFLOW_VERSION }}-py${{ steps.setup_python.outputs.python-version }}
+          # Path is relative to the workspace root
+          path: tmp/tensorflow_pkg/*.whl
+          retention-days: 7
   # Optional: Job to create a GitHub Release and upload the wheel there
   release:
     needs: build
@@ -207,10 +192,8 @@ jobs:
         with:
           name: tensorflow-noavx-tf${{ jobs.build.outputs.tensorflow }}-py${{ jobs.build.outputs.python }}
           path: dist
-
       - name: Display structure of downloaded files
         run: ls -R dist
-
       - name: Create GitHub Release and Upload Wheel
         uses: softprops/action-gh-release@v1
         with:
@@ -228,17 +211,14 @@ jobs:
           prerelease: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }
-
   publish-to-pages:
     needs: build # Run only after the build job succeeds
     runs-on: ubuntu-latest
     # Only publish on manual triggers or scheduled runs that succeed
     if: success() && (github.event_name == 'workflow_dispatch' || github.event_name == 'schedule')
-
     # Grant permissions for actions/checkout to push to gh-pages branch
     permissions:
       contents: write
-
     steps:
       - name: Download wheel artifact from build job
         uses: actions/download-artifact@v4
@@ -247,21 +227,17 @@ jobs:
           name: tensorflow-noavx-${{ jobs.build.outputs.tensorflow }}-py${{ jobs.build.outputs.python }}
           # Download to a temporary directory
           path: ./wheel-artifact
-
       - name: List downloaded artifact contents
         run: ls -R ./wheel-artifact
-
       - name: Checkout GitHub Pages branch
         uses: actions/checkout@v4
         with:
           ref: gh-pages # The branch to publish to
           path: gh-pages # Checkout to a specific directory
-
       - name: Set up Python (for potential scripting)
         uses: actions/setup-python@v4
         with:
           python-version: '3.x'
-
       - name: Create PEP 503 structure and update index
         shell: bash # Use bash for scripting
         run: |
@@ -308,7 +284,6 @@ jobs:
 
           echo "Index files generated."
           ls -lR "$PAGES_DIR"
-
       - name: Commit and push changes to gh-pages
         run: |
           cd gh-pages
