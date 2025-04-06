@@ -123,7 +123,6 @@ jobs:
         PYTHON_BIN_PATH: ${{ steps.python_details.outputs.PYTHON_BIN_PATH }}
         PYTHON_LIB_PATH: ${{ steps.python_details.outputs.PYTHON_LIB_PATH }}
         TF_PYTHON_VERSION: ${{ steps.python_details.outputs.TF_PYTHON_VERSION }}
-        HERMETIC_PYTHON_VERSION: ${{ steps.python_details.outputs.TF_PYTHON_VERSION }}
         TF_ENABLE_XLA: '1'
         TF_NEED_CUDA: '0'
         TF_NEED_ROCM: '0'
@@ -152,13 +151,15 @@ jobs:
     # Tmate Debugging Step - uncomment/comment as needed
     # This will pause the workflow and output SSH connection details
     # Connect to the runner to manually inspect the environment and run commands
-    - name: Setup tmate session for debugging
-      uses: mxschmitt/action-tmate@v3
-      timeout-minutes: 60 # Adjust timeout for debugging session
+    # - name: Setup tmate session for debugging
+    #   uses: mxschmitt/action-tmate@v3
+    #   timeout-minutes: 60
     # ---------------------------------------------------------------------
 
     - name: Build TensorFlow Wheel
       working-directory: ./tensorflow
+      env: |
+        HERMETIC_PYTHON_VERSION: ${{ steps.python_details.outputs.TF_PYTHON_VERSION }}
       run: |
         echo "Starting Bazel build..."
         bazel build \
