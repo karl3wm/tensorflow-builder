@@ -9,39 +9,35 @@ on:
     paths:
       - '.github/workflows/**' # Only run if workflow files change
 jobs:
-  # this example gives the current existing python releases. other object properties give eol status or latest minor versions
-  # wget -O - https://endoflife.date/api/python.json | jq '[.[].cycle]'
-  recent_tensorflow_tags:
+  version_enumeration:
     runs-on: ubuntu-22.04
     outputs:
-      versions: ${{ steps.tensorflow_latest.outputs.versions }}
-    # strategy:
-    #   matrix:
-    #     tensorflow_latest: [1, 2, 3, 4, 5, 6, 7, 8]
+      tensorflow: ${{ steps.tensorflow.outputs.versions }}
+      python: ${{ steps.python.outputs.versions }}
     steps:
       - name: Install jq
-        run: sudo apt-get install jq coreutils git
+        run: sudo apt-get install jq coreutils git wget
       - name: Fetch recent TensorFlow tags
-        id: tensorflow_latest
+        id: tensorflow
         run: |
           mkdir -p tensorflow
           cd tensorflow
           git init .
           git remote add origin https://github.com/tensorflow/tensorflow
           git fetch --filter=tree:0 origin
-          echo "versions=$(git tag --list --sort=-creatordate 'v*.[0-9]' | head -n 16 | jq -R -s -c 'rtrimstr("\n")|split("\n")')" | tee -a $GITHUB_OUTPUT
-          #ref="$(git tag --list --sort=-creatordate 'v*.[0-9]' | head -n ${{ matrix.tensorflow_latest }} | tail -n 1)"
-          ##ref="$(git ls-remote --quiet --tags --sort=-creatordate https://github.com/tensorflow/tensorflow 'v*.[0-9]' | head -n ${{ matrix.tensorflow_latest }} | tail -n 1 | cut -f 2)"
-          #echo "Selected TensorFlow $ref"
-          #echo "version=${ref#v}" >> $GITHUB_OUTPUT
+          echo "versions=$(git tag --list --sort=-creatordate 'v*.[0-9]' | jq -R -s -c 'rtrimstr("\n")|split("\n")|.[0:16]')" | tee -a $GITHUB_OUTPUT
+      - name: Fetch recent Python versions
+        id: python
+        run: |
+          echo "versions=$(wget -O - https://endoflife.date/api/python.json | jq '[.[0:8].cycle]')" | tee -a $GITHUB_OUTPUT
   build:
     runs-on: ubuntu-22.04
-    needs: recent_tensorflow_tags
+    needs: version_enumeration
     strategy:
       fail-fast: false
       matrix:
-        python: ['3.11', '3.12']
-        tensorflow: ${{ fromJSON(needs.recent_tensorflow_tags.outputs.versions) }}
+        python: ${{ fromJSON(needs.version_enumeration.outputs.python) }}
+        tensorflow: ${{ fromJSON(needs.version_enumeration.outputs.tensorflow) }}
     steps:
       - name: Set up Python ${{ matrix.python }}
         id: setup_python
