@@ -48,8 +48,9 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
       - name: Checkout TensorFlow ${{ matrix.tensorflow }}
-        working-directory: tensorflow
         run: |
+          git clone --filter=tree:0 --no-checkout https://github.com/tensorflow/tensorflow
+          cd tensorflow
           git checkout ${{ matrix.tensorflow }} -b build
       # - name: Checkout TensorFlow Source Code
       #   uses: actions/checkout@v4
