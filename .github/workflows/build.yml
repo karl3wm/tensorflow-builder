@@ -66,7 +66,7 @@ jobs:
           #sudo apt-get dist-upgrade --yes --quiet # slows down build
           sudo apt-get install --yes --quiet build-essential curl git python3-dev pkg-config coreutils zip unzip xz-utils lld wget sed cuda-toolkit-12-3 cudnn-cuda-12
           echo "Installing clang"
-          wget --progress=dot:mega https://github.com/llvm/llvm-project/releases/download/llvmorg-17.0.2/clang+llvm-17.0.2-x86_64-linux-gnu-ubuntu-${VERSION_ID}.tar.xz -O - | xzcat | sudo tar -xvf - --directory /usr/local --strip-components=1
+          wget --progress=dot:mega https://github.com/llvm/llvm-project/releases/download/llvmorg-17.0.2/clang+llvm-17.0.2-x86_64-linux-gnu-ubuntu-${VERSION_ID}.tar.xz -O - | xzcat | sudo tar -xvf - --directory /usr --strip-components=1
           echo "Clang installation complete."
           hash -r
           type -p clang
@@ -200,34 +200,36 @@ jobs:
         #   #HERMETIC_PYTHON_VERSION: ${{ steps.generated.outputs.TF_PYTHON_VERSION }}
         #   #WHEEL_NAME: tensorflow_noavx_cpu
         run: |
-          echo "TFCI_PYTHON_VERSION=$(python -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')" > ci/official/envs/py_custom
-          echo 'TFCI_BAZEL_COMMON_ARGS="$TFCI_BAZEL_COMMON_ARGS --config=monolithic --copt=-march=nehalem --copt=-mno-avx --copt=-mno-avx2 --copt=-O3 --verbose_failures"' > ci/official/envs/noavx_custom
-          echo 'TFCI_BUILD_PIP_PACKAGE_WHEEL_NAME_ARG="${TFCI_BUILD_PIP_PACKAGE_WHEEL_NAME_ARG/tensorflow/tensorflow_noavx}"' >> ci/official/envs/noavx_custom
-          echo 'TFCI_INSTALLER_WHL_PROJECT_NAME="${TFCI_INSTALLER_WHL_PROJECT_NAME/tensorflow/tensorflow_noavx}"' >> ci/official/envs/noavx_custom
-          for envfile in py_custom linux_x86 disk_cache no_docker noavx_custom
-          do
-                echo "$envfile":
-                cat ci/official/envs/"$envfile"
-          done
-          echo "Running Bazel build and creating wheel file ..."
-          TFCI=py_custom,linux_x86,disk_cache,no_docker,noavx_custom ci/official/wheel.sh
-          # echo "Running ./configure with environment variables:"
-          # printenv | grep TF_ # Show TF vars being used
-          # printenv | grep CC_OPT_FLAGS # Show compiler flags being used
-          # ./configure
-          # echo "Configure finished."
-          # echo "Migrating build_pip_package vs build_pip_package_py ..."
-          #
-          # find -name build_pip_package.py && sed -i 's!PIP_BUILD_TARGET="//tensorflow/tools/pip_package:build_pip_package"!PIP_BUILD_TARGET="//tensorflow/tools/pip_package:build_pip_package_py"!' tensorflow/tools/ci_build/builds/pip_new.sh
-          # . tensorflow/tools/ci_build/builds/pip_new.sh
-          #
-          # #echo "Bazel build finished. Creating wheel file..."
-          # ## Create the wheel package in /tmp/tensorflow_pkg (relative to workspace root)
-          # #./bazel-bin/tensorflow/tools/pip_package/build_pip_package --cpu ../tmp/tensorflow_pkg
-          #
-          # echo "Wheel file created in ${PIP_WHL_DIR}:"
-          echo "Bazel build finished and wheel file created in build_output:"
-          ls build_output/*.whl
+          if [ -d ci/official/envs ]
+          then # ci infrastructure in this version
+            echo "TFCI_PYTHON_VERSION=$(python -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')" > ci/official/envs/py_custom
+            echo 'TFCI_BAZEL_COMMON_ARGS="$TFCI_BAZEL_COMMON_ARGS --config=monolithic --copt=-march=nehalem --copt=-mno-avx --copt=-mno-avx2 --copt=-O3 --verbose_failures"' > ci/official/envs/noavx_custom
+            echo 'TFCI_BUILD_PIP_PACKAGE_WHEEL_NAME_ARG="${TFCI_BUILD_PIP_PACKAGE_WHEEL_NAME_ARG/tensorflow/tensorflow_noavx}"' >> ci/official/envs/noavx_custom
+            echo 'TFCI_INSTALLER_WHL_PROJECT_NAME="${TFCI_INSTALLER_WHL_PROJECT_NAME/tensorflow/tensorflow_noavx}"' >> ci/official/envs/noavx_custom
+            for envfile in py_custom linux_x86 disk_cache no_docker noavx_custom
+            do
+              echo "$envfile":
+              cat ci/official/envs/"$envfile"
+            done
+            echo "Running Bazel build and creating wheel file ..."
+            TFCI=py_custom,linux_x86,disk_cache,no_docker,noavx_custom ci/official/wheel.sh
+            PIP_WHL_DIR="$(pwd)/build_output"
+          else # build manually
+            echo "Running ./configure with environment variables:"
+            printenv | grep TF_ # Show TF vars being used
+            printenv | grep CC_OPT_FLAGS # Show compiler flags being used
+            ./configure
+            echo "Configure finished."
+            #echo "Migrating build_pip_package vs build_pip_package_py ..."
+            #find -name build_pip_package.py && sed -i 's!PIP_BUILD_TARGET="//tensorflow/tools/pip_package:build_pip_package"!PIP_BUILD_TARGET="//tensorflow/tools/pip_package:build_pip_package_py"!' tensorflow/tools/ci_build/builds/pip_new.sh
+            echo "Running Bazel build and creating wheel file ..."
+            . tensorflow/tools/ci_build/builds/pip_new.sh
+            #echo "Bazel build finished. Creating wheel file..."
+            ## Create the wheel package in /tmp/tensorflow_pkg (relative to workspace root)
+            #./bazel-bin/tensorflow/tools/pip_package/build_pip_package --cpu ../tmp/tensorflow_pkg
+          fi
+          echo "Bazel build finished and wheel file created in ${PIP_WHL_DIR}:"
+          ls "$PIP_WHL_DIR"/*.whl
           echo PIP_WHL_DIR="$(pwd)/build_output" >> $GITHUB_OUTPUT
       - name: Always Save Bazel Cache
         if: always()
