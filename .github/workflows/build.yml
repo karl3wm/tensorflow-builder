@@ -40,22 +40,22 @@ jobs:
           TF_REF="$(git tag --list --sort=-creatordate 'v*.[0-9]' | head -n ${{ matrix.tensorflow_latest }} | tail -n 1)"
           git checkout "$TF_REF"
           echo "TF_VERSION=${TF_REF#v}" >> $GITHUB_OUTPUT
-      - name: Determine Bazel Version
-        id: bazel_version
-        working-directory: ./tensorflow
-        run: |
-          if [[ -f ".bazelversion" ]]; then
-            BAZEL_VERSION_FROM_FILE=$(cat .bazelversion | head -n 1)
-            echo "Found .bazelversion, using Bazel version: $BAZEL_VERSION_FROM_FILE"
-            echo "bazel_version=$BAZEL_VERSION_FROM_FILE" >> $GITHUB_OUTPUT
-          else
-            # --- Fallback Bazel Version ---
-            # Choose a version known to work with recent TF if .bazelversion is missing
-            DEFAULT_BAZEL_VERSION="6.1.0"
-            echo "WARN: .bazelversion not found in TF source for tag v${{ steps.generated.outputs.TF_VERSION }}."
-            echo "Using fallback Bazel version: $DEFAULT_BAZEL_VERSION"
-            echo "bazel_version=$DEFAULT_BAZEL_VERSION" >> $GITHUB_OUTPUT
-          fi
+      # - name: Determine Bazel Version
+      #   id: bazel_version
+      #   working-directory: ./tensorflow
+      #   run: |
+      #     if [[ -f ".bazelversion" ]]; then
+      #       BAZEL_VERSION_FROM_FILE=$(cat .bazelversion | head -n 1)
+      #       echo "Found .bazelversion, using Bazel version: $BAZEL_VERSION_FROM_FILE"
+      #       echo "bazel_version=$BAZEL_VERSION_FROM_FILE" >> $GITHUB_OUTPUT
+      #     else
+      #       # --- Fallback Bazel Version ---
+      #       # Choose a version known to work with recent TF if .bazelversion is missing
+      #       DEFAULT_BAZEL_VERSION="6.1.0"
+      #       echo "WARN: .bazelversion not found in TF source for tag v${{ steps.generated.outputs.TF_VERSION }}."
+      #       echo "Using fallback Bazel version: $DEFAULT_BAZEL_VERSION"
+      #       echo "bazel_version=$DEFAULT_BAZEL_VERSION" >> $GITHUB_OUTPUT
+      #     fi
       - name: Install Build Dependencies
         run: |
           echo "set man-db/auto-update false" | sudo debconf-communicate
@@ -64,14 +64,11 @@ jobs:
           #sudo apt-get update --yes --quiet
           #sudo apt-get dist-upgrade --yes --quiet # slows down build
           sudo apt-get install --yes --quiet build-essential curl git python3-dev pkg-config zip unzip clang-17 lld wget sed
-          BAZEL_VERSION=${{ steps.bazel_version.outputs.bazel_version }}
-          echo "Attempting to install Bazel version: $BAZEL_VERSION"
-          wget --progress=dot:mega https://github.com/bazelbuild/bazel/releases/download/${BAZEL_VERSION}/bazel-${BAZEL_VERSION}-installer-linux-x86_64.sh
-          chmod +x bazel-${BAZEL_VERSION}-installer-linux-x86_64.sh
-          # Using --user installs to $HOME/bin
-          ./bazel-${BAZEL_VERSION}-installer-linux-x86_64.sh --user
-          rm bazel-${BAZEL_VERSION}-installer-linux-x86_64.sh
-          # Add bazel to PATH for subsequent steps
+          echo "Attempting to install latest Bazelisk"
+          mkdir -p $HOME/bin
+          wget --progress=dot:mega https://github.com/bazelbuild/bazelisk/releases/latest/download/bazelisk-linux-amd64 -O $HOME/bin/bazel
+          chmod +x $HOME/bin/bazel
+          # Add to PATH for subsequent steps
           echo "$HOME/bin" >> $GITHUB_PATH
           echo "Bazel installation complete. Checking version:"
           bazel --version
