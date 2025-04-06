@@ -88,17 +88,13 @@ jobs:
         echo "Bazel installation complete. Checking version:"
         bazel --version
 
-    - name: Configure Bazel Cache
-      uses: actions/cache@v4
+    - name: Restore Bazel Cache
+      uses: actions/cache/restore@v4
       with:
         path: |
           ~/.cache/bazel
           ~/.cache/bazelisk
-        # Include the determined Bazel version in the cache key
         key: bazel-cache-${{ runner.os }}-${{ github.event.inputs.tf_version }}-${{ steps.setup_python.outputs.python-version }}-bazel${{ steps.bazel_version.outputs.bazel_version }}
-        restore-keys: |
-          bazel-cache-${{ runner.os }}-${{ github.event.inputs.tf_version }}-${{ steps.setup_python.outputs.python-version }}-bazel${{ steps.bazel_version.outputs.bazel_version }}
-          bazel-cache-${{ runner.os }}-${{ github.event.inputs.tf_version }}-${{ steps.setup_python.outputs.python-version }}-
 
     # - name: Dump Configuration and Environment (Troubleshooting)
     #   run: |
@@ -187,6 +183,15 @@ jobs:
 
         echo "Wheel file created in ../tmp/tensorflow_pkg:"
         ls ../tmp/tensorflow_pkg/*.whl
+
+    - name: Always Save Bazel Cache
+      if: always()
+      uses: actions/cache/save@v4
+      with:
+        path: |
+          ~/.cache/bazel
+          ~/.cache/bazelisk
+        key: bazel-cache-${{ runner.os }}-${{ github.event.inputs.tf_version }}-${{ steps.setup_python.outputs.python-version }}-bazel${{ steps.bazel_version.outputs.bazel_version }}
 
     - name: Upload TensorFlow Wheel Artifact
       uses: actions/upload-artifact@v4
