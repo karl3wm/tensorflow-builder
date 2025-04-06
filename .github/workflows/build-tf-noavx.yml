@@ -11,8 +11,8 @@ on:
         description: 'Python Version (e.g., 3.9, 3.10, 3.11)'
         required: true
         default: '3.10'
-  # schedule: # Example: Run weekly on Sunday at 03:00 UTC - Disabled for now during debugging
-  #   - cron: '0 3 * * 0'
+  schedule: # Example: Run weekly on Sunday at 03:00 UTC
+    - cron: '0 3 * * 0'
 
 jobs:
   build:
@@ -43,23 +43,23 @@ jobs:
       with:
         python-version: ${{ github.event.inputs.python_version }}
 
-    - name: Get Python details
-      id: python_details
-      run: |
-        echo "PYTHON_BIN_PATH=$(which python)" >> $GITHUB_OUTPUT
-        echo "PYTHON_LIB_PATH=$(python -c 'import site; print(site.getsitepackages()[0])')" >> $GITHUB_OUTPUT
-        echo "TF_PYTHON_VERSION=$(python -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')" >> $GITHUB_OUTPUT
+    # - name: Get Python details
+    #   id: python_details
+    #   run: |
+    #     echo "PYTHON_BIN_PATH=$(which python)" >> $GITHUB_OUTPUT
+    #     echo "PYTHON_LIB_PATH=$(python -c 'import site; print(site.getsitepackages()[0])')" >> $GITHUB_OUTPUT
+    #     echo "TF_PYTHON_VERSION=$(python -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')" >> $GITHUB_OUTPUT
 
     - name: Install Build Dependencies (Tools, Clang, LLD - Defer Bazel)
       run: |
         sudo apt-get update -y
-        # Install common tools, python dev headers, clang, lld (for version check & potential use)
+        sudo apt-get dist-upgrade -y
         sudo apt-get install -y build-essential curl git python3-dev pkg-config zip unzip clang lld wget
 
     - name: Determine Bazel Version
       id: bazel_version
       run: |
-        cd tensorflow # Go into the checked-out TF directory
+        cd tensorflow
         if [[ -f ".bazelversion" ]]; then
           BAZEL_VERSION_FROM_FILE=$(cat .bazelversion | head -n 1)
           echo "Found .bazelversion, using Bazel version: $BAZEL_VERSION_FROM_FILE"
@@ -72,7 +72,7 @@ jobs:
           echo "Using fallback Bazel version: $DEFAULT_BAZEL_VERSION"
           echo "bazel_version=$DEFAULT_BAZEL_VERSION" >> $GITHUB_OUTPUT
         fi
-        cd .. # Go back to the root directory
+        cd ..
 
     - name: Install Specific Bazel Version
       run: |
@@ -100,29 +100,29 @@ jobs:
           bazel-cache-${{ runner.os }}-${{ github.event.inputs.tf_version }}-${{ steps.setup_python.outputs.python-version }}-bazel${{ steps.bazel_version.outputs.bazel_version }}
           bazel-cache-${{ runner.os }}-${{ github.event.inputs.tf_version }}-${{ steps.setup_python.outputs.python-version }}-
 
-    - name: Dump Configuration and Environment (Troubleshooting)
-      run: |
-        echo "--- System Info ---"
-        uname -a
-        lsb_release -a
-        echo "--- Tool Versions ---"
-        python --version
-        pip --version
-        bazel version || echo "Bazel not found or failed"
-        gcc --version || echo "GCC not found or failed"
-        g++ --version || echo "G++ not found or failed"
-        clang --version || echo "Clang not found or failed"
-        ldd --version || echo "ldd not found or failed" # GNU ld version
-        ld.lld --version || echo "ld.lld not found or failed" # LLVM linker version
-        echo "--- Key Environment Variables ---"
-        echo "PATH=$PATH"
-        echo "PYTHON_BIN_PATH=${{ steps.python_details.outputs.PYTHON_BIN_PATH }}"
-        echo "PYTHON_LIB_PATH=${{ steps.python_details.outputs.PYTHON_LIB_PATH }}"
-        echo "TF_PYTHON_VERSION=${{ steps.python_details.outputs.TF_PYTHON_VERSION }}"
-        printenv | grep TF_ || echo "No TF_ environment variables set yet"
-        printenv | grep CC_ || echo "No CC_ environment variables set yet"
-        echo "--- Python Site Packages ---"
-        ls -l ${{ steps.python_details.outputs.PYTHON_LIB_PATH }} || echo "Could not list site-packages"
+    # - name: Dump Configuration and Environment (Troubleshooting)
+    #   run: |
+    #     echo "--- System Info ---"
+    #     uname -a
+    #     lsb_release -a
+    #     echo "--- Tool Versions ---"
+    #     python --version
+    #     pip --version
+    #     bazel version || echo "Bazel not found or failed"
+    #     gcc --version || echo "GCC not found or failed"
+    #     g++ --version || echo "G++ not found or failed"
+    #     clang --version || echo "Clang not found or failed"
+    #     ldd --version || echo "ldd not found or failed" # GNU ld version
+    #     ld.lld --version || echo "ld.lld not found or failed" # LLVM linker version
+    #     echo "--- Key Environment Variables ---"
+    #     echo "PATH=$PATH"
+    #     echo "PYTHON_BIN_PATH=${{ steps.python_details.outputs.PYTHON_BIN_PATH }}"
+    #     echo "PYTHON_LIB_PATH=${{ steps.python_details.outputs.PYTHON_LIB_PATH }}"
+    #     echo "TF_PYTHON_VERSION=${{ steps.python_details.outputs.TF_PYTHON_VERSION }}"
+    #     printenv | grep TF_ || echo "No TF_ environment variables set yet"
+    #     printenv | grep CC_ || echo "No CC_ environment variables set yet"
+    #     echo "--- Python Site Packages ---"
+    #     ls -l ${{ steps.python_details.outputs.PYTHON_LIB_PATH }} || echo "Could not list site-packages"
 
     - name: Configure TensorFlow (Inside TF Directory)
       working-directory: ./tensorflow # Run commands inside the checked-out TF directory
@@ -168,7 +168,6 @@ jobs:
       working-directory: ./tensorflow # Run commands inside the checked-out TF directory
       run: |
         echo "Starting Bazel build..."
-        # Build the pip package with enhanced verbosity
         bazel build \
           --config=opt \
           --config=monolithic \
@@ -177,9 +176,10 @@ jobs:
           --copt=-mno-avx2 \
           --copt=-O3 \
           --verbose_failures \
-          --subcommands \
-          --toolchain_resolution_debug=@bazel_tools//tools/cpp:toolchain_type \
           //tensorflow/tools/pip_package:build_pip_package
+          # Build the pip package with enhanced verbosity
+          #--toolchain_resolution_debug=@bazel_tools//tools/cpp:toolchain_type \
+          #--subcommands \
 
         echo "Bazel build finished. Creating wheel file..."
         # Create the wheel package in /tmp/tensorflow_pkg (relative to workspace root)
