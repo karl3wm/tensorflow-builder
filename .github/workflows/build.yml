@@ -15,7 +15,7 @@ jobs:
         python: ['3.11', '3.12']
         tensorflow_latest: [1, 2, 3, 4, 5, 6, 7, 8]
         #tensorflow: ['2.18.1'] # git tag --list --sort=-creatordate 'v*.[0-9]'
-     outputs:
+    outputs:
       tensorflow: ${{ steps.generated.outputs.TENSORFLOW_VERSION }}
       python: ${{ steps.setup_python.outputs.python-version }}
 
