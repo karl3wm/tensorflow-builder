@@ -18,7 +18,7 @@ jobs:
     #     tensorflow_latest: [1, 2, 3, 4, 5, 6, 7, 8]
     steps:
       - name: Install jq
-        run: sudo apt-get install jq head git tee
+        run: sudo apt-get install jq coreutils git
       - name: Fetch recent TensorFlow tags
         id: tensorflow_latest
         run: |
