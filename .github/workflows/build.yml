@@ -64,9 +64,9 @@ jobs:
           sudo apt-get update --yes --quiet
           sudo apt-get remove --yes --quiet firefox clang*
           #sudo apt-get dist-upgrade --yes --quiet # slows down build
-          sudo apt-get install --yes --quiet build-essential curl git python3-dev pkg-config coreutils zip unzip lld wget sed cuda-toolkit-12-3 cudnn-cuda-12
+          sudo apt-get install --yes --quiet build-essential curl git python3-dev pkg-config coreutils zip unzip xz lld wget sed cuda-toolkit-12-3 cudnn-cuda-12
           echo "Installing clang"
-          wget --progress=dot:mega https://github.com/llvm/llvm-project/releases/download/llvmorg-17.0.2/clang+llvm-17.0.2-x86_64-linux-gnu-ubuntu-${VERSION_ID}.tar.xz -O - | sudo tar -xvf - --directory /usr/local --strip-components=1
+          wget --progress=dot:mega https://github.com/llvm/llvm-project/releases/download/llvmorg-17.0.2/clang+llvm-17.0.2-x86_64-linux-gnu-ubuntu-${VERSION_ID}.tar.xz -O - | xzcat | sudo tar -xvf - --directory /usr/local --strip-components=1
           echo "Clang installation complete."
           hash -r
           type -p clang
