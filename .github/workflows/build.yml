@@ -207,7 +207,7 @@ jobs:
           draft: false
           prerelease: false
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   publish-to-pages:
     needs: build # Run only after the build job succeeds
     runs-on: ubuntu-latest
