@@ -158,7 +158,7 @@ jobs:
 
     - name: Build TensorFlow Wheel
       working-directory: ./tensorflow
-      env: |
+      env:
         HERMETIC_PYTHON_VERSION: ${{ steps.python_details.outputs.TF_PYTHON_VERSION }}
       run: |
         echo "Starting Bazel build..."
