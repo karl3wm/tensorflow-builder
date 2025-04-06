@@ -4,3 +4,5 @@ Around https://github.com/tensorflow/tensorflow/tree/master/tensorflow/tools/tf_
 This script looks promising: https://github.com/tensorflow/tensorflow/blob/master/tensorflow/tools/ci_build/builds/pip_new.sh
 
 Different platforms are referenced in that ci_build folder.
+
+Building in a cross-version compatible way may be able to use https://github.com/tensorflow/tensorflow/blob/master/ci/official/README.md .
