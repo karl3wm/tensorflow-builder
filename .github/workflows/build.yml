@@ -29,13 +29,13 @@ jobs:
           #echo "version=${ref#v}" >> $GITHUB_OUTPUT
   build:
     runs-on: ubuntu-latest
-    needs: recent_tensorflow
+    needs: recent_tensorflow_tags
     timeout-minutes: 360 # 6 hours (GitHub Actions maximum for free tier)
     strategy:
       fail-fast: false
       matrix:
         python: ['3.11', '3.12']
-        tensorflow: ${{ fromJSON(needs.recent_tensorflow.outputs.versions) }}
+        tensorflow: ${{ fromJSON(needs.recent_tensorflow_tags.outputs.versions) }}
     steps:
       - name: Set up Python ${{ matrix.python }}
         id: setup_python
