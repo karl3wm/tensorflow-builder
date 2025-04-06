@@ -56,6 +56,8 @@ jobs:
           fi
       - name: Install Build Dependencies
         run: |
+          sudo debconf-set man-db/auto-update false
+          sudo rm /var/lib/man-db/auto-update
           sudo apt-get remove --yes --quiet firefox clang*
           #sudo apt-get update --yes --quiet
           #sudo apt-get dist-upgrade --yes --quiet # slows down build
