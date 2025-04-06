@@ -47,18 +47,18 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python }}
-      - name: Checkout TensorFlow ${{ matrix.tensorflow }}
-        run: |
-          git clone --filter=tree:0 --no-checkout https://github.com/tensorflow/tensorflow
-          cd tensorflow
-          git checkout ${{ matrix.tensorflow }} -b build
-      # - name: Checkout TensorFlow Source Code
-      #   uses: actions/checkout@v4
-      #   with:
-      #     repository: 'tensorflow/tensorflow'
-      #     path: 'tensorflow'
-      #     filter: 'blob:none'
-      #     ref: ${{ matrix.tensorflow }}
+      #- name: Checkout TensorFlow ${{ matrix.tensorflow }}
+      #  run: |
+      #    git clone --filter=tree:0 --no-checkout https://github.com/tensorflow/tensorflow
+      #    cd tensorflow
+      #    git checkout ${{ matrix.tensorflow }} -b build
+      - name: Checkout TensorFlow ${{ matrix.tensorflow }} Source Code
+        uses: actions/checkout@v4
+        with:
+          repository: 'tensorflow/tensorflow'
+          path: 'tensorflow'
+          filter: 'tree:0'
+          ref: ${{ matrix.tensorflow }}
       # - name: Check out ${{ matrix.tensorflow_latest }}-most recent tensorflow tag
       #   id: checkout
       #   working-directory: tensorflow
