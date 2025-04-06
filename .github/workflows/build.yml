@@ -154,9 +154,9 @@ jobs:
     # Tmate Debugging Step - uncomment/comment as needed
     # This will pause the workflow and output SSH connection details
     # Connect to the runner to manually inspect the environment and run commands
-    # - name: Setup tmate session for debugging
-    #   uses: mxschmitt/action-tmate@v3
-    #   timeout-minutes: 60 # Adjust timeout for debugging session
+    - name: Setup tmate session for debugging
+      uses: mxschmitt/action-tmate@v3
+      timeout-minutes: 60 # Adjust timeout for debugging session
     # ---------------------------------------------------------------------
 
     - name: Build TensorFlow Wheel (Inside TF Directory)
