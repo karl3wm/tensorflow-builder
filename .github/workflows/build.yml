@@ -3,6 +3,11 @@ on:
   workflow_dispatch: # Allows manual triggering from the Actions tab
   schedule: # Example: Run weekly on Sunday at 03:00 UTC
     - cron: '0 3 * * 0'
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/**' # Only run if workflow files change
 jobs:
   recent_tensorflow_tags:
     runs-on: ubuntu-latest
