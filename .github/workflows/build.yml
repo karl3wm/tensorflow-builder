@@ -19,7 +19,8 @@ jobs:
     runs-on: ubuntu-latest
     # Set a longer timeout because TensorFlow builds take a long time
     timeout-minutes: 360 # 6 hours (GitHub Actions maximum for free tier)
- 
+    permissions:
+      actions: write # this allows reuse of the bazel cache
     # Define strategy if you want to build multiple Python versions automatically
     # For now, we use the input python_version for manual runs
     # strategy:
