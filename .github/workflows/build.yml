@@ -61,7 +61,7 @@ jobs:
           echo "Installing clang"
           wget --progress=dot:mega https://github.com/llvm/llvm-project/releases/download/llvmorg-17.0.2/clang+llvm-17.0.2-x86_64-linux-gnu-ubuntu-${VERSION_ID}.tar.xz
           tar -xf clang+llvm-17.0.2-x86_64-linux-gnu-ubuntu-${VERSION_ID}.tar.xz
-          cp -r clang+llvm-17.0.2-x86_64-linux-gnu-ubuntu-${VERSION_ID}/* /usr
+          sudo cp -r clang+llvm-17.0.2-x86_64-linux-gnu-ubuntu-${VERSION_ID}/* /usr/
           echo "Attempting to install latest Bazelisk"
           mkdir -p $HOME/bin
           wget --progress=dot:mega https://github.com/bazelbuild/bazelisk/releases/latest/download/bazelisk-linux-amd64 -O $HOME/bin/bazel
