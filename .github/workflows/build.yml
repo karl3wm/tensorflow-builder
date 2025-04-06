@@ -47,6 +47,26 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python }}
+      - name: Install Build Dependencies
+        run: |
+          echo "set man-db/auto-update false" | sudo debconf-communicate
+          sudo dpkg-reconfigure man-db
+          . /etc/os-release
+          wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu${VERSION_ID/.}/x86_64/cuda-keyring_1.1-1_all.deb
+          sudo dpkg -i cuda-keyring_1.1-1_all.deb
+          #sudo apt-get remove --yes --quiet firefox
+          #sudo apt-get remove --yes --quiet firefox clang*
+          sudo apt-get update --yes --quiet
+          #sudo apt-get dist-upgrade --yes --quiet # slows down build
+          sudo apt-get install --yes --quiet build-essential curl git python3-dev pkg-config coreutils zip unzip clang-17 clang-18 lld wget sed cuda-toolkit-12-3 cudnn-cuda-12
+          echo "Attempting to install latest Bazelisk"
+          mkdir -p $HOME/bin
+          wget --progress=dot:mega https://github.com/bazelbuild/bazelisk/releases/latest/download/bazelisk-linux-amd64 -O $HOME/bin/bazel
+          chmod +x $HOME/bin/bazel
+          # Add to PATH for subsequent steps
+          echo "$HOME/bin" >> $GITHUB_PATH
+          echo "Bazel installation complete."
+          type -p bazel
       #- name: Checkout TensorFlow ${{ matrix.tensorflow }}
       #  run: |
       #    git clone --filter=tree:0 --no-checkout https://github.com/tensorflow/tensorflow
@@ -93,26 +113,6 @@ jobs:
       #       echo "Using fallback Bazel version: $DEFAULT_BAZEL_VERSION"
       #       echo "bazel_version=$DEFAULT_BAZEL_VERSION" >> $GITHUB_OUTPUT
       #     fi
-      - name: Install Build Dependencies
-        run: |
-          echo "set man-db/auto-update false" | sudo debconf-communicate
-          sudo dpkg-reconfigure man-db
-          . /etc/os-release
-          wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu${VERSION_ID/.}/x86_64/cuda-keyring_1.1-1_all.deb
-          sudo dpkg -i cuda-keyring_1.1-1_all.deb
-          #sudo apt-get remove --yes --quiet firefox
-          #sudo apt-get remove --yes --quiet firefox clang*
-          sudo apt-get update --yes --quiet
-          #sudo apt-get dist-upgrade --yes --quiet # slows down build
-          sudo apt-get install --yes --quiet build-essential curl git python3-dev pkg-config coreutils zip unzip clang-17 clang-18 lld wget sed cuda-toolkit-12-3 cudnn-cuda-12
-          echo "Attempting to install latest Bazelisk"
-          mkdir -p $HOME/bin
-          wget --progress=dot:mega https://github.com/bazelbuild/bazelisk/releases/latest/download/bazelisk-linux-amd64 -O $HOME/bin/bazel
-          chmod +x $HOME/bin/bazel
-          # Add to PATH for subsequent steps
-          echo "$HOME/bin" >> $GITHUB_PATH
-          echo "Bazel installation complete."
-          type -p bazel
       - name: Restore Bazel Cache
         uses: actions/cache/restore@v4
         with:
