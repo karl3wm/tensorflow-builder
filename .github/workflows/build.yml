@@ -26,7 +26,7 @@ jobs:
           path: 'tensorflow'
           filter: 'blob:none'
           fetch-tags: true
-          depth: 0
+          fetch-depth: 0
       # These outputs are used later in the run
       - name: Generate values available at runtime
         id: generated
