@@ -4,15 +4,17 @@ on:
   schedule: # Example: Run weekly on Sunday at 03:00 UTC
     - cron: '0 3 * * 0'
 jobs:
-  recent_tensorflow:
+  recent_tensorflow_tags:
     runs-on: ubuntu-latest
     outputs:
-      version: ${{ steps.tensorflow_latest.outputs.version }}
-    strategy:
-      matrix:
-        tensorflow_latest: [1, 2, 3, 4, 5, 6, 7, 8]
+      versions: ${{ steps.tensorflow_latest.outputs.versions }}
+    # strategy:
+    #   matrix:
+    #     tensorflow_latest: [1, 2, 3, 4, 5, 6, 7, 8]
     steps:
-      - name: Find ${{ matrix.tensorflow_latest }}-most recent TensorFlow tag
+      - name: Install jq
+        run: apt-get install jq head git tee
+      - name: Fetch recent TensorFlow tags
         id: tensorflow_latest
         run: |
           mkdir -p tensorflow
@@ -20,10 +22,11 @@ jobs:
           git init .
           git remote add origin https://github.com/tensorflow/tensorflow
           git fetch --filter=tree:0 origin
-          ref="$(git tag --list --sort=-creatordate 'v*.[0-9]' | head -n ${{ matrix.tensorflow_latest }} | tail -n 1)"
-          #ref="$(git ls-remote --quiet --tags --sort=-creatordate https://github.com/tensorflow/tensorflow 'v*.[0-9]' | head -n ${{ matrix.tensorflow_latest }} | tail -n 1 | cut -f 2)"
-          echo "Selected TensorFlow $ref"
-          echo "version=${ref#v}" >> $GITHUB_OUTPUT
+          echo "versions=$(git tag --list --sort=-creatordate 'v*.[0-9]' | head -n 16 | jq -R -s -c 'split("\n")')" | tee -a $GITHUB_OUTPUT
+          #ref="$(git tag --list --sort=-creatordate 'v*.[0-9]' | head -n ${{ matrix.tensorflow_latest }} | tail -n 1)"
+          ##ref="$(git ls-remote --quiet --tags --sort=-creatordate https://github.com/tensorflow/tensorflow 'v*.[0-9]' | head -n ${{ matrix.tensorflow_latest }} | tail -n 1 | cut -f 2)"
+          #echo "Selected TensorFlow $ref"
+          #echo "version=${ref#v}" >> $GITHUB_OUTPUT
   build:
     runs-on: ubuntu-latest
     needs: recent_tensorflow
@@ -32,7 +35,7 @@ jobs:
       fail-fast: false
       matrix:
         python: ['3.11', '3.12']
-        tensorflow: ["${{ needs.recent_tensorflow.outputs.version }}"]
+        tensorflow: ${{ fromJSON(needs.recent_tensorflow.outputs.versions) }}
     steps:
       - name: Set up Python ${{ matrix.python }}
         id: setup_python
