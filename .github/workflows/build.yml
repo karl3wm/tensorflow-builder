@@ -2,52 +2,42 @@ name: Build
 
 on:
   workflow_dispatch: # Allows manual triggering from the Actions tab
-    inputs:
-      tf_version:
-        description: 'TensorFlow Version (e.g., 2.15.0)'
-        required: true
-        default: '2.18.1'
-      python_version:
-        description: 'Python Version (e.g., 3.9, 3.10, 3.11)'
-        required: true
-        default: '3.12'
   schedule: # Example: Run weekly on Sunday at 03:00 UTC
     - cron: '0 3 * * 0'
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    # Set a longer timeout because TensorFlow builds take a long time
     timeout-minutes: 360 # 6 hours (GitHub Actions maximum for free tier)
-    # Define strategy if you want to build multiple Python versions automatically
-    # For now, we use the input python_version for manual runs
-    # strategy:
-    #   fail-fast: false
-    #   matrix:
-    #     python-version: ['3.9', '3.10', '3.11']
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ['3.11', '3.12']
+        tensorflow: ['2.18.1']
 
     steps:
     - name: Checkout TensorFlow Source Code
       uses: actions/checkout@v4
       with:
         repository: 'tensorflow/tensorflow'
-        ref: 'v${{ github.event.inputs.tf_version }}' # Checkout specific TF version tag
+        ref: 'v${{ matrix.tensorflow }}' # Checkout specific TF version tag
         path: 'tensorflow' # Checkout into a 'tensorflow' subdirectory
         # Fetch depth 1 is usually okay, but full depth might be needed if build relies on history
         # fetch-depth: 0 # Uncomment if full history is needed
 
-    - name: Set up Python ${{ github.event.inputs.python_version }}
+    - name: Set up Python ${{ matrix.python }}
       id: setup_python
       uses: actions/setup-python@v4
       with:
-        python-version: ${{ github.event.inputs.python_version }}
+        python-version: ${{ matrix.python }}
 
-    # - name: Get Python details
-    #   id: python_details
-    #   run: |
-    #     echo "PYTHON_BIN_PATH=$(which python)" >> $GITHUB_OUTPUT
-    #     echo "PYTHON_LIB_PATH=$(python -c 'import site; print(site.getsitepackages()[0])')" >> $GITHUB_OUTPUT
-    #     echo "TF_PYTHON_VERSION=$(python -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')" >> $GITHUB_OUTPUT
+    # These outputs are used later in the run
+    - name: Get Python details
+      id: python_details
+      run: |
+        echo "PYTHON_BIN_PATH=$(which python)" >> $GITHUB_OUTPUT
+        echo "PYTHON_LIB_PATH=$(python -c 'import site; print(site.getsitepackages()[0])')" >> $GITHUB_OUTPUT
+        echo "TF_PYTHON_VERSION=$(python -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')" >> $GITHUB_OUTPUT
 
     - name: Determine Bazel Version
       id: bazel_version
@@ -61,7 +51,7 @@ jobs:
           # --- Fallback Bazel Version ---
           # Choose a version known to work with recent TF if .bazelversion is missing
           DEFAULT_BAZEL_VERSION="6.1.0"
-          echo "WARN: .bazelversion not found in TF source for tag v${{ github.event.inputs.tf_version }}."
+          echo "WARN: .bazelversion not found in TF source for tag v${{ matrix.tensorflow }}."
           echo "Using fallback Bazel version: $DEFAULT_BAZEL_VERSION"
           echo "bazel_version=$DEFAULT_BAZEL_VERSION" >> $GITHUB_OUTPUT
         fi
@@ -90,7 +80,7 @@ jobs:
         path: |
           ~/.cache/bazel
           ~/.cache/bazelisk
-        key: bazel-cache-os${{ runner.os }}-tf${{ github.event.inputs.tf_version }}-py${{ steps.setup_python.outputs.python-version }}-bazel${{ steps.bazel_version.outputs.bazel_version }}-run
+        key: bazel-cache-os${{ runner.os }}-tf${{ matrix.tensorflow }}-py${{ steps.setup_python.outputs.python-version }}-bazel${{ steps.bazel_version.outputs.bazel_version }}-run
 
     # - name: Dump Configuration and Environment (Troubleshooting)
     #   run: |
@@ -189,12 +179,12 @@ jobs:
         path: |
           ~/.cache/bazel
           ~/.cache/bazelisk
-        key: bazel-cache-os${{ runner.os }}-tf${{ github.event.inputs.tf_version }}-py${{ steps.setup_python.outputs.python-version }}-bazel${{ steps.bazel_version.outputs.bazel_version }}-run{{github.run_attempt}}
+        key: bazel-cache-os${{ runner.os }}-tf${{ matrix.tensorflow }}-py${{ steps.setup_python.outputs.python-version }}-bazel${{ steps.bazel_version.outputs.bazel_version }}-run{{github.run_attempt}}
 
     - name: Upload TensorFlow Wheel Artifact
       uses: actions/upload-artifact@v4
       with:
-        name: tensorflow-noavx-${{ github.event.inputs.tf_version }}-py${{ steps.setup_python.outputs.python-version }}
+        name: tensorflow-noavx-${{ matrix.tensorflow }}-py${{ steps.setup_python.outputs.python-version }}
         # Path is relative to the workspace root
         path: tmp/tensorflow_pkg/*.whl
         retention-days: 7
@@ -208,7 +198,7 @@ jobs:
       - name: Download wheel artifact from build job
         uses: actions/download-artifact@v4
         with:
-          name: tensorflow-noavx-${{ github.event.inputs.tf_version }}-py${{ steps.setup_python.outputs.python-version }}
+          name: tensorflow-noavx-${{ matrix.tensorflow }}-py${{ steps.setup_python.outputs.python-version }}
           path: dist
 
       - name: Display structure of downloaded files
@@ -217,12 +207,12 @@ jobs:
       - name: Create GitHub Release and Upload Wheel
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: tf-v${{ github.event.inputs.tf_version }}-noavx-py${{ steps.setup_python.outputs.python-version }}-build${{ github.run_id }}
-          name: TensorFlow ${{ github.event.inputs.tf_version }} (No AVX) for Python ${{ github.event.inputs.python_version }}
+          tag_name: tf-v${{ matrix.tensorflow }}-noavx-py${{ steps.setup_python.outputs.python-version }}-build${{ github.run_id }}
+          name: TensorFlow ${{ matrix.tensorflow }} (No AVX) for Python ${{ matrix.python }}
           body: |
             TensorFlow wheel built from source without AVX/AVX2 instructions.
-            TensorFlow Version: ${{ github.event.inputs.tf_version }}
-            Python Version: ${{ github.event.inputs.python_version }}
+            TensorFlow Version: ${{ matrix.tensorflow }}
+            Python Version: ${{ matrix.python }}
             Target Architecture Flags: -march=nehalem -mno-avx -mno-avx2
             Built via GitHub Actions run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
             Bazel Version Used: ${{ needs.build.outputs.bazel_version }} # Needs output from build job
