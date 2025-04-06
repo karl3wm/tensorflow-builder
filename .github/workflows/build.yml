@@ -15,7 +15,7 @@ jobs:
       - name: Find ${{ matrix.tensorflow_latest }}-most recent TensorFlow tag
         id: tensorflow_latest
         run: |
-          ref="$(git ls-remote --quiet --tags --sort=-creatordate https://github.com/tensorflow/tensorflow 'v*.[0-9]' | head -n ${{ matrix.tensorflow_lateset }} | tail -n 1 | cut -f 2)"
+          ref="$(git ls-remote --quiet --tags --sort=-creatordate https://github.com/tensorflow/tensorflow 'v*.[0-9]' | head -n ${{ matrix.tensorflow_latest }} | tail -n 1 | cut -f 2)"
           echo "version=${ref#v}" >> $GITHUB_OUTPUT
   build:
     runs-on: ubuntu-latest
