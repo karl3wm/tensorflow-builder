@@ -68,9 +68,9 @@ jobs:
 
     - name: Install Build Dependencies
       run: |
-        sudo apt-get update --yes --quiet
         sudo apt-get remove --yes --quiet firefox clang*
-        sudo apt-get dist-upgrade --yes --quiet
+        #sudo apt-get update --yes --quiet
+        #sudo apt-get dist-upgrade --yes --quiet # slows down build
         sudo apt-get install --yes --quiet build-essential curl git python3-dev pkg-config zip unzip clang-17 lld wget
         BAZEL_VERSION=${{ steps.bazel_version.outputs.bazel_version }}
         echo "Attempting to install Bazel version: $BAZEL_VERSION"
