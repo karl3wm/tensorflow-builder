@@ -24,7 +24,7 @@ jobs:
           cd tensorflow
           git init .
           git remote add origin https://github.com/tensorflow/tensorflow
-          git fetch --filter=tree:0 origin
+          git fetch --filter=tree:0 origin 'refs/tags/*:refs/tags/*'
           echo "versions=$(git tag --list --sort=-creatordate 'v*.[0-9]' | jq --raw-input --slurp --compact-output 'rtrimstr("\n")|split("\n")|.[0:16]')" | tee -a $GITHUB_OUTPUT
       - name: Fetch recent Python versions
         id: python
