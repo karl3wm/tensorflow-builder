@@ -10,7 +10,7 @@ on:
       - '.github/workflows/**' # Only run if workflow files change
 jobs:
   recent_tensorflow_tags:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     outputs:
       versions: ${{ steps.tensorflow_latest.outputs.versions }}
     # strategy:
