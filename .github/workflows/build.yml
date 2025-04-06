@@ -49,13 +49,6 @@ jobs:
     #     echo "PYTHON_LIB_PATH=$(python -c 'import site; print(site.getsitepackages()[0])')" >> $GITHUB_OUTPUT
     #     echo "TF_PYTHON_VERSION=$(python -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')" >> $GITHUB_OUTPUT
 
-    - name: Install Build Dependencies (Tools, Clang, LLD - Defer Bazel)
-      run: |
-        sudo apt-get update -y
-        sudo apt-get remove -y firefox
-        sudo apt-get dist-upgrade -y
-        sudo apt-get install -y build-essential curl git python3-dev pkg-config zip unzip clang lld wget
-
     - name: Determine Bazel Version
       id: bazel_version
       working-directory: ./tensorflow
@@ -73,8 +66,12 @@ jobs:
           echo "bazel_version=$DEFAULT_BAZEL_VERSION" >> $GITHUB_OUTPUT
         fi
 
-    - name: Install Specific Bazel Version
+    - name: Install Build Dependencies
       run: |
+        sudo apt-get update -y
+        sudo apt-get remove -y firefox
+        sudo apt-get dist-upgrade -y
+        sudo apt-get install -y build-essential curl git python3-dev pkg-config zip unzip clang lld wget
         BAZEL_VERSION=${{ steps.bazel_version.outputs.bazel_version }}
         echo "Attempting to install Bazel version: $BAZEL_VERSION"
         wget https://github.com/bazelbuild/bazel/releases/download/${BAZEL_VERSION}/bazel-${BAZEL_VERSION}-installer-linux-x86_64.sh
