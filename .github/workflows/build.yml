@@ -170,10 +170,10 @@ jobs:
           --copt=-mno-avx2 \
           --copt=-O3 \
           --verbose_failures \
-          --toolchain_resolution_debug=@bazel_tools//tools/cpp:toolchain_type \
-          --subcommands \
           //tensorflow/tools/pip_package:wheel --repo_env=WHEEL_NAME=tensorflow_noavx_cpu
           # Build the pip package with enhanced verbosity
+          # --toolchain_resolution_debug=@bazel_tools//tools/cpp:toolchain_type \
+          # --subcommands \
 
         echo "Bazel build finished. Creating wheel file..."
         # Create the wheel package in /tmp/tensorflow_pkg (relative to workspace root)
