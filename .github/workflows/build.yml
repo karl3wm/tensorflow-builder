@@ -156,7 +156,7 @@ jobs:
         #   #WHEEL_NAME: tensorflow_noavx_cpu
         run: |
           echo "TFCI_PYTHON_VERSION=$(python -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')" > ci/official/envs/py_custom
-          echo 'TFCI_BAZEL_COMMON_ARGS="$TFCI_BAZEL_COMMON_ARGS --config=monolithic --copt=-march=nehalem --copt=-mno-avx --copt=-mno-avx2 --copt=-O3 --verbose_failures' > ci/official/envs/noavx_custom
+          echo 'TFCI_BAZEL_COMMON_ARGS="$TFCI_BAZEL_COMMON_ARGS --config=monolithic --copt=-march=nehalem --copt=-mno-avx --copt=-mno-avx2 --copt=-O3 --verbose_failures"' > ci/official/envs/noavx_custom
           echo 'TFCI_BUILD_PIP_PACKAGE_WHEEL_NAME_ARG="${TFCI_BUILD_PIP_PACKAGE_WHEEL_NAME_ARG/tensorflow/tensorflow_noavx}"' >> ci/official/envs/noavx_custom
           echo 'TFCI_INSTALLER_WHL_PROJECT_NAME="${TFCI_INSTALLER_WHL_PROJECT_NAME/tensorflow/tensorflow_noavx}"' >> ci/official/envs/noavx_custom
           echo "Running Bazel build and creating wheel file ..."
