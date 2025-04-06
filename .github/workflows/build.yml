@@ -67,10 +67,11 @@ jobs:
         run: |
           echo "set man-db/auto-update false" | sudo debconf-communicate
           sudo dpkg-reconfigure man-db
-          sudo apt-get remove --yes --quiet firefox clang*
+          #sudo apt-get remove --yes --quiet firefox
+          #sudo apt-get remove --yes --quiet firefox clang*
           #sudo apt-get update --yes --quiet
           #sudo apt-get dist-upgrade --yes --quiet # slows down build
-          sudo apt-get install --yes --quiet build-essential curl git python3-dev pkg-config zip unzip clang-17 lld wget sed
+          sudo apt-get install --yes --quiet build-essential curl git python3-dev pkg-config zip unzip clang lld wget sed
           echo "Attempting to install latest Bazelisk"
           mkdir -p $HOME/bin
           wget --progress=dot:mega https://github.com/bazelbuild/bazelisk/releases/latest/download/bazelisk-linux-amd64 -O $HOME/bin/bazel
@@ -159,6 +160,11 @@ jobs:
           echo 'TFCI_BAZEL_COMMON_ARGS="$TFCI_BAZEL_COMMON_ARGS --config=monolithic --copt=-march=nehalem --copt=-mno-avx --copt=-mno-avx2 --copt=-O3 --verbose_failures"' > ci/official/envs/noavx_custom
           echo 'TFCI_BUILD_PIP_PACKAGE_WHEEL_NAME_ARG="${TFCI_BUILD_PIP_PACKAGE_WHEEL_NAME_ARG/tensorflow/tensorflow_noavx}"' >> ci/official/envs/noavx_custom
           echo 'TFCI_INSTALLER_WHL_PROJECT_NAME="${TFCI_INSTALLER_WHL_PROJECT_NAME/tensorflow/tensorflow_noavx}"' >> ci/official/envs/noavx_custom
+          for envfile in py_custom linux_x86 public_cache disk_cache no_docker noavx_custom
+          do
+                echo "$envfile":
+                cat ci/official/envs/"$envfile"
+          done
           echo "Running Bazel build and creating wheel file ..."
           TFCI=py_custom,linux_x86,public_cache,disk_cache,no_docker,noavx_custom ci/official/wheel.sh
           # echo "Running ./configure with environment variables:"
