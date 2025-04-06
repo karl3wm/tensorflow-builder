@@ -29,17 +29,24 @@ jobs:
           filter: 'blob:none'
           fetch-tags: true
           fetch-depth: 0
-      # These outputs are used later in the run
-      - name: Generate values available at runtime
-        id: generated
-        working-directory: ./tensorflow
+      - name: Check out ${{ matrix.tensorflow_latest }}-most recent tensorflow tag
+        id: checkout
+        working-directory: tensorflow
         run: |
-          echo "PYTHON_BIN_PATH=$(which python)" >> $GITHUB_OUTPUT
-          echo "PYTHON_LIB_PATH=$(python -c 'import site; print(site.getsitepackages()[0])')" >> $GITHUB_OUTPUT
-          echo "TF_PYTHON_VERSION=$(python -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')" >> $GITHUB_OUTPUT
           TF_REF="$(git tag --list --sort=-creatordate 'v*.[0-9]' | head -n ${{ matrix.tensorflow_latest }} | tail -n 1)"
           git checkout "$TF_REF"
           echo "TF_VERSION=${TF_REF#v}" >> $GITHUB_OUTPUT
+      # # These outputs are used later in the run
+      # - name: Generate values available at runtime
+      #   id: generated
+      #   working-directory: ./tensorflow
+      #   run: |
+      #     echo "PYTHON_BIN_PATH=$(which python)" >> $GITHUB_OUTPUT
+      #     echo "PYTHON_LIB_PATH=$(python -c 'import site; print(site.getsitepackages()[0])')" >> $GITHUB_OUTPUT
+      #     echo "TF_PYTHON_VERSION=$(python -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')" >> $GITHUB_OUTPUT
+      #     TF_REF="$(git tag --list --sort=-creatordate 'v*.[0-9]' | head -n ${{ matrix.tensorflow_latest }} | tail -n 1)"
+      #     git checkout "$TF_REF"
+      #     echo "TF_VERSION=${TF_REF#v}" >> $GITHUB_OUTPUT
       # - name: Determine Bazel Version
       #   id: bazel_version
       #   working-directory: ./tensorflow
@@ -52,7 +59,7 @@ jobs:
       #       # --- Fallback Bazel Version ---
       #       # Choose a version known to work with recent TF if .bazelversion is missing
       #       DEFAULT_BAZEL_VERSION="6.1.0"
-      #       echo "WARN: .bazelversion not found in TF source for tag v${{ steps.generated.outputs.TF_VERSION }}."
+      #       echo "WARN: .bazelversion not found in TF source for tag v${{ steps.checkout.outputs.TF_VERSION }}."
       #       echo "Using fallback Bazel version: $DEFAULT_BAZEL_VERSION"
       #       echo "bazel_version=$DEFAULT_BAZEL_VERSION" >> $GITHUB_OUTPUT
       #     fi
@@ -78,7 +85,8 @@ jobs:
           path: |
             ~/.cache/bazel
             ~/.cache/bazelisk
-          key: bazel-cache-os${{ runner.os }}-tf${{ steps.generated.outputs.TF_VERSION }}-py${{ steps.setup_python.outputs.python-version }}-bazel${{ steps.bazel_version.outputs.bazel_version }}-run
+            tensorflow/build_output/cache
+          key: bazel-cache-os${{ runner.os }}-tf${{ steps.checkout.outputs.TF_VERSION }}-py${{ steps.setup_python.outputs.python-version }}-bazel${{ steps.bazel_version.outputs.bazel_version }}-run
       # - name: Dump Configuration and Environment (Troubleshooting)
       #   run: |
       #     echo "--- System Info ---"
@@ -113,58 +121,64 @@ jobs:
       - name: Configure and build TensorFlow
         id: build
         working-directory: ./tensorflow
-        env:
-          # Environment variables for TensorFlow's configure script (non-interactive)
-          PYTHON_BIN_PATH: ${{ steps.generated.outputs.PYTHON_BIN_PATH }}
-          PYTHON_LIB_PATH: ${{ steps.generated.outputs.PYTHON_LIB_PATH }}
-          TF_PYTHON_VERSION: ${{ steps.generated.outputs.TF_PYTHON_VERSION }}
-          TF_ENABLE_XLA: '1'
-          TF_NEED_CUDA: '0'
-          TF_NEED_ROCM: '0'
-          # Let Bazel decide on Clang download/use by default
-          # TF_DOWNLOAD_CLANG: '0'
-          # Remove explicit GCC paths to allow Bazel to potentially pick Clang
-          # GCC_HOST_COMPILER_PATH: /usr/bin/gcc
-          # HOST_CXX_COMPILER_PATH: /usr/bin/g++
-          TF_CONFIGURE_IOS: '0'
-          TF_SET_ANDROID_WORKSPACE: '0'
-          # --- CRUCIAL: Compiler flags to disable AVX/AVX2 ---
-          # Target Nehalem (SSE4.2 baseline before AVX). Adjust if needed.
-          CC_OPT_FLAGS: '-march=nehalem -mno-avx -mno-avx2 -O3'
-          TF_BUILD_FLAGS: "--config=monolithic --config=opt --copt=-march=nehalem --copt=-mno-avx --copt=-mno-avx2 --copt=-O3 --verbose_failures" # --toolchain_resolution_debug=@bazel_tools//tools/cpp:toolchain_type --subcommands # Build the pip package with enhanced verbosity
-          TF_NEED_OPENCL_SYCL: '0'
-          TF_NEED_COMPUTECPP: '0'
-          TF_NEED_MPI: '0'
-          TF_NEED_TENSORRT: '0'
-          CONTAINER_TYPE: cpu # cpu gpu rocm
-          OS_TYPE: ubuntu # ubuntu macos
-          IS_NIGHTLY: 0
-          TF_PROJECT_NAME: "tensorflow_noavx"
-          KOKORO_ARTIFACTS_DIR: ../tmp
-          TF_TEST_FLAGS: "--verbose_failures=true --build_tests_only --test_output=errors"
-          TF_TEST_FILTER_TAGS: "-no_oss,-oss_excluded,-oss_serial,-gpu,-tpu,-benchmark-test"
-          TF_TEST_TARGETS: "//tensorflow/... -//tensorflow/compiler/... -//tensorflow/contrib/..."
-          #HERMETIC_PYTHON_VERSION: ${{ steps.generated.outputs.TF_PYTHON_VERSION }}
-          #WHEEL_NAME: tensorflow_noavx_cpu
+        # env:
+        #   # Environment variables for TensorFlow's configure script (non-interactive)
+        #   PYTHON_BIN_PATH: ${{ steps.generated.outputs.PYTHON_BIN_PATH }}
+        #   PYTHON_LIB_PATH: ${{ steps.generated.outputs.PYTHON_LIB_PATH }}
+        #   TF_PYTHON_VERSION: ${{ steps.generated.outputs.TF_PYTHON_VERSION }}
+        #   TF_ENABLE_XLA: '1'
+        #   TF_NEED_CUDA: '0'
+        #   TF_NEED_ROCM: '0'
+        #   # Let Bazel decide on Clang download/use by default
+        #   # TF_DOWNLOAD_CLANG: '0'
+        #   # Remove explicit GCC paths to allow Bazel to potentially pick Clang
+        #   # GCC_HOST_COMPILER_PATH: /usr/bin/gcc
+        #   # HOST_CXX_COMPILER_PATH: /usr/bin/g++
+        #   TF_CONFIGURE_IOS: '0'
+        #   TF_SET_ANDROID_WORKSPACE: '0'
+        #   # --- CRUCIAL: Compiler flags to disable AVX/AVX2 ---
+        #   # Target Nehalem (SSE4.2 baseline before AVX). Adjust if needed.
+        #   CC_OPT_FLAGS: '-march=nehalem -mno-avx -mno-avx2 -O3'
+        #   TF_BUILD_FLAGS: "--config=monolithic --config=opt --copt=-march=nehalem --copt=-mno-avx --copt=-mno-avx2 --copt=-O3 --verbose_failures" # --toolchain_resolution_debug=@bazel_tools//tools/cpp:toolchain_type --subcommands # Build the pip package with enhanced verbosity
+        #   TF_NEED_OPENCL_SYCL: '0'
+        #   TF_NEED_COMPUTECPP: '0'
+        #   TF_NEED_MPI: '0'
+        #   TF_NEED_TENSORRT: '0'
+        #   CONTAINER_TYPE: cpu # cpu gpu rocm
+        #   OS_TYPE: ubuntu # ubuntu macos
+        #   IS_NIGHTLY: 0
+        #   TF_PROJECT_NAME: "tensorflow_noavx"
+        #   KOKORO_ARTIFACTS_DIR: ../tmp
+        #   TF_TEST_FLAGS: "--verbose_failures=true --build_tests_only --test_output=errors"
+        #   TF_TEST_FILTER_TAGS: "-no_oss,-oss_excluded,-oss_serial,-gpu,-tpu,-benchmark-test"
+        #   TF_TEST_TARGETS: "//tensorflow/... -//tensorflow/compiler/... -//tensorflow/contrib/..."
+        #   #HERMETIC_PYTHON_VERSION: ${{ steps.generated.outputs.TF_PYTHON_VERSION }}
+        #   #WHEEL_NAME: tensorflow_noavx_cpu
         run: |
-          echo "Running ./configure with environment variables:"
-          printenv | grep TF_ # Show TF vars being used
-          printenv | grep CC_OPT_FLAGS # Show compiler flags being used
-          ./configure
-          echo "Configure finished."
-          echo "Migrating build_pip_package vs build_pip_package_py ..."
-
-          echo "Starting Bazel build and creating wheel file ..."
-          find -name build_pip_package.py && sed -i 's!PIP_BUILD_TARGET="//tensorflow/tools/pip_package:build_pip_package"!PIP_BUILD_TARGET="//tensorflow/tools/pip_package:build_pip_package_py"!' tensorflow/tools/ci_build/builds/pip_new.sh
-          . tensorflow/tools/ci_build/builds/pip_new.sh
-
-          #echo "Bazel build finished. Creating wheel file..."
-          ## Create the wheel package in /tmp/tensorflow_pkg (relative to workspace root)
-          #./bazel-bin/tensorflow/tools/pip_package/build_pip_package --cpu ../tmp/tensorflow_pkg
-
-          echo "Wheel file created in ${PIP_WHL_DIR}:"
-          ls "${PIP_WHL_DIR}"/*.whl
-          echo PIP_WHL_DIR="${PIP_WHL_DIR}" >> $GITHUB_OUTPUT
+          echo "TFCI_PYTHON_VERSION=$(python -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')" > ci/official/envs/py_custom
+          echo 'TFCI_BAZEL_COMMON_ARGS="$TFCI_BAZEL_COMMON_ARGS --config=monolithic --copt=-march=nehalem --copt=-mno-avx --copt=-mno-avx2 --copt=-O3 --verbose_failures' > ci/official/envs/noavx_custom
+          echo 'TFCI_BUILD_PIP_PACKAGE_WHEEL_NAME_ARG="${TFCI_BUILD_PIP_PACKAGE_WHEEL_NAME_ARG/tensorflow/tensorflow_noavx}"' >> ci/official/envs/noavx_custom
+          echo 'TFCI_INSTALLER_WHL_PROJECT_NAME="${TFCI_INSTALLER_WHL_PROJECT_NAME/tensorflow/tensorflow_noavx}' >> ci/official/envs/noavx_custom
+          echo "Running Bazel build and creating wheel file ..."
+          TFCI=py_custom,linux_x86,public_cache,disk_cache,no_docker,noavx_custom ci/official/wheel.sh
+          # echo "Running ./configure with environment variables:"
+          # printenv | grep TF_ # Show TF vars being used
+          # printenv | grep CC_OPT_FLAGS # Show compiler flags being used
+          # ./configure
+          # echo "Configure finished."
+          # echo "Migrating build_pip_package vs build_pip_package_py ..."
+          # 
+          # find -name build_pip_package.py && sed -i 's!PIP_BUILD_TARGET="//tensorflow/tools/pip_package:build_pip_package"!PIP_BUILD_TARGET="//tensorflow/tools/pip_package:build_pip_package_py"!' tensorflow/tools/ci_build/builds/pip_new.sh
+          # . tensorflow/tools/ci_build/builds/pip_new.sh
+          # 
+          # #echo "Bazel build finished. Creating wheel file..."
+          # ## Create the wheel package in /tmp/tensorflow_pkg (relative to workspace root)
+          # #./bazel-bin/tensorflow/tools/pip_package/build_pip_package --cpu ../tmp/tensorflow_pkg
+          # 
+          # echo "Wheel file created in ${PIP_WHL_DIR}:"
+          echo "Bazel build finished and wheel file created in build_output:"
+          ls build_output/*.whl
+          echo PIP_WHL_DIR="$(pwd)/build_output" >> $GITHUB_OUTPUT
       - name: Always Save Bazel Cache
         if: always()
         uses: actions/cache/save@v4
@@ -172,11 +186,12 @@ jobs:
           path: |
             ~/.cache/bazel
             ~/.cache/bazelisk
-          key: bazel-cache-os${{ runner.os }}-tf${{ steps.generated.outputs.TF_VERSION }}-py${{ steps.setup_python.outputs.python-version }}-bazel${{ steps.bazel_version.outputs.bazel_version }}-run{{github.run_id}.{{github.run_attempt}}
+            tensorflow/build_output/cache
+          key: bazel-cache-os${{ runner.os }}-tf${{ steps.checkout.outputs.TF_VERSION }}-py${{ steps.setup_python.outputs.python-version }}-bazel${{ steps.bazel_version.outputs.bazel_version }}-run{{github.run_id}.{{github.run_attempt}}
       - name: Upload TensorFlow Wheel Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: tensorflow-noavx-tf${{ steps.generated.outputs.TF_VERSION }}-py${{ steps.setup_python.outputs.python-version }}
+          name: tensorflow-noavx-tf${{ steps.checkout.outputs.TF_VERSION }}-py${{ steps.setup_python.outputs.python-version }}
           # Path is relative to the workspace root
           path: ${{ steps.build.outputs.PIP_WHL_DIR }}/*.whl
           retention-days: 7
@@ -189,18 +204,18 @@ jobs:
       - name: Download wheel artifact from build job
         uses: actions/download-artifact@v4
         with:
-          name: tensorflow-noavx-tf${{ steps.generated.outputs.TF_VERSION }}-py${{ steps.setup_python.outputs.python-version }}
+          name: tensorflow-noavx-tf${{ steps.checkout.outputs.TF_VERSION }}-py${{ steps.setup_python.outputs.python-version }}
           path: dist
       - name: Display structure of downloaded files
         run: ls -R dist
       - name: Create GitHub Release and Upload Wheel
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: tf-v${{ steps.generated.outputs.TF_VERSION }}-noavx-py${{ steps.setup_python.outputs.python-version }}-build${{ github.run_id }}
-          name: TensorFlow ${{ steps.generated.outputs.TF_VERSION }} (No AVX) for Python ${{ matrix.python }}
+          tag_name: tf-v${{ steps.checkout.outputs.TF_VERSION }}-noavx-py${{ steps.setup_python.outputs.python-version }}-build${{ github.run_id }}
+          name: TensorFlow ${{ steps.checkout.outputs.TF_VERSION }} (No AVX) for Python ${{ matrix.python }}
           body: |
             TensorFlow wheel built from source without AVX/AVX2 instructions.
-            TensorFlow Version: ${{ steps.generated.outputs.TF_VERSION }}
+            TensorFlow Version: ${{ steps.checkout.outputs.TF_VERSION }}
             Python Version: ${{ steps.setup_python.outputs.python-version }}
             Target Architecture Flags: -march=nehalem -mno-avx -mno-avx2
             Built via GitHub Actions run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
@@ -223,7 +238,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           # Must match the upload name in the 'build' job
-          name: tensorflow-noavx-${{ steps.generated.outputs.TF_VERSION }}-py${{ steps.setup_python.outputs.python-version }}
+          name: tensorflow-noavx-${{ steps.checkout.outputs.TF_VERSION }}-py${{ steps.setup_python.outputs.python-version }}
           # Download to a temporary directory
           path: ./wheel-artifact
       - name: List downloaded artifact contents
