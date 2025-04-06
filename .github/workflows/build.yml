@@ -25,11 +25,11 @@ jobs:
           git init .
           git remote add origin https://github.com/tensorflow/tensorflow
           git fetch --filter=tree:0 origin
-          echo "versions=$(git tag --list --sort=-creatordate 'v*.[0-9]' | jq -R -s -c 'rtrimstr("\n")|split("\n")|.[0:16]')" | tee -a $GITHUB_OUTPUT
+          echo "versions=$(git tag --list --sort=-creatordate 'v*.[0-9]' | jq --raw-input --slurp --compact-output 'rtrimstr("\n")|split("\n")|.[0:16]')" | tee -a $GITHUB_OUTPUT
       - name: Fetch recent Python versions
         id: python
         run: |
-          echo "versions=$(wget -O - https://endoflife.date/api/python.json | jq '[.[0:8][].cycle]')" | tee -a $GITHUB_OUTPUT
+          echo "versions=$(wget -O - https://endoflife.date/api/python.json | jq --compact-output '[.[0:8][].cycle]')" | tee -a $GITHUB_OUTPUT
   build:
     runs-on: ubuntu-22.04
     needs: version_enumeration
