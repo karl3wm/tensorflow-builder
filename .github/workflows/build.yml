@@ -16,20 +16,25 @@ jobs:
       python: ${{ steps.python.outputs.versions }}
     steps:
       - name: Install jq
-        run: sudo apt-get install jq coreutils git wget
+        run: sudo apt-get install jq coreutils git
       - name: Fetch recent TensorFlow tags
         id: tensorflow
         run: |
-          mkdir -p tensorflow
-          cd tensorflow
+          mkdir -p tensorflow.git
+          cd tensorflow.git
           git init .
           git remote add origin https://github.com/tensorflow/tensorflow
-          git fetch --filter=tree:0 origin 'refs/tags/*:refs/tags/*'
+          git fetch --depth=1 --filter=tree:0 origin 'refs/tags/*:refs/tags/*'
           echo "versions=$(git tag --list --sort=-creatordate 'v*.[0-9]' | jq --raw-input --slurp --compact-output 'rtrimstr("\n")|split("\n")|.[0:16]')" | tee -a $GITHUB_OUTPUT
       - name: Fetch recent Python versions
         id: python
         run: |
-          echo "versions=$(wget -O - https://endoflife.date/api/python.json | jq --compact-output '[.[0:8][].cycle]')" | tee -a $GITHUB_OUTPUT
+          mkdir -p python.git
+          cd python.git
+          git init .
+          git remote add origin https://github.com/python/cpython
+          git fetch --depth=1 --filter=tree:0 origin 'refs/heads/3.*:refs/heads/3.*'
+          echo "versions=$(git branch | jq --raw-input --slurp --compact-output 'rtrimstr("\n")|split("\n")|.[0:8]')" | tee -a $GITHUB_OUTPUT
   build:
     runs-on: ubuntu-22.04
     needs: version_enumeration
