@@ -40,7 +40,7 @@ jobs:
         echo "TF_PYTHON_VERSION=$(python -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')" >> $GITHUB_OUTPUT
         TENSORFLOW_REF="$(git tag --list --sort=-creatordate 'v*.[0-9]' | head -n {{ matrix.tensorflow_latest }} | tail -n 1)"
         git checkout "$TENSORFLOW_REF"
-        echo "TENSORFLOW_REF=$TENSORFLOW_REF" >> $GITHUB_OUTPUT
+        echo "TENSORFLOW_VERSION=${TENSORFLOW_REF#v}" >> $GITHUB_OUTPUT
 
     - name: Determine Bazel Version
       id: bazel_version
@@ -54,7 +54,7 @@ jobs:
           # --- Fallback Bazel Version ---
           # Choose a version known to work with recent TF if .bazelversion is missing
           DEFAULT_BAZEL_VERSION="6.1.0"
-          echo "WARN: .bazelversion not found in TF source for tag ${{ steps.generated.outputs.TENSORFLOW_REF }}."
+          echo "WARN: .bazelversion not found in TF source for tag v${{ steps.generated.outputs.TENSORFLOW_VERSION }}."
           echo "Using fallback Bazel version: $DEFAULT_BAZEL_VERSION"
           echo "bazel_version=$DEFAULT_BAZEL_VERSION" >> $GITHUB_OUTPUT
         fi
@@ -83,7 +83,7 @@ jobs:
         path: |
           ~/.cache/bazel
           ~/.cache/bazelisk
-        key: bazel-cache-os${{ runner.os }}-tf${{ steps.generated.outputs.TENSORFLOW_REF }}-py${{ steps.setup_python.outputs.python-version }}-bazel${{ steps.bazel_version.outputs.bazel_version }}-run
+        key: bazel-cache-os${{ runner.os }}-tf${{ steps.generated.outputs.TENSORFLOW_VERSION }}-py${{ steps.setup_python.outputs.python-version }}-bazel${{ steps.bazel_version.outputs.bazel_version }}-run
 
     # - name: Dump Configuration and Environment (Troubleshooting)
     #   run: |
@@ -183,12 +183,12 @@ jobs:
         path: |
           ~/.cache/bazel
           ~/.cache/bazelisk
-        key: bazel-cache-os${{ runner.os }}-tf${{ steps.generated.outputs.TENSORFLOW_REF }}-py${{ steps.setup_python.outputs.python-version }}-bazel${{ steps.bazel_version.outputs.bazel_version }}-run{{github.run_attempt}}
+        key: bazel-cache-os${{ runner.os }}-tf${{ steps.generated.outputs.TENSORFLOW_VERSION }}-py${{ steps.setup_python.outputs.python-version }}-bazel${{ steps.bazel_version.outputs.bazel_version }}-run{{github.run_attempt}}
 
     - name: Upload TensorFlow Wheel Artifact
       uses: actions/upload-artifact@v4
       with:
-        name: tensorflow-noavx-tf${{ steps.generated.outputs.TENSORFLOW_REF }}-py${{ steps.setup_python.outputs.python-version }}
+        name: tensorflow-noavx-tf${{ steps.generated.outputs.TENSORFLOW_VERSION }}-py${{ steps.setup_python.outputs.python-version }}
         # Path is relative to the workspace root
         path: tmp/tensorflow_pkg/*.whl
         retention-days: 7
@@ -202,7 +202,7 @@ jobs:
       - name: Download wheel artifact from build job
         uses: actions/download-artifact@v4
         with:
-          name: tensorflow-noavx-tf${{ steps.generated.outputs.TENSORFLOW_REF }}-py${{ steps.setup_python.outputs.python-version }}
+          name: tensorflow-noavx-tf${{ steps.generated.outputs.TENSORFLOW_VERSION }}-py${{ steps.setup_python.outputs.python-version }}
           path: dist
 
       - name: Display structure of downloaded files
@@ -211,11 +211,11 @@ jobs:
       - name: Create GitHub Release and Upload Wheel
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: tf-${{ steps.generated.outputs.TENSORFLOW_REF }}-noavx-py${{ steps.setup_python.outputs.python-version }}-build${{ github.run_id }}
-          name: TensorFlow ${{ steps.generated.outputs.TENSORFLOW_REF }} (No AVX) for Python ${{ matrix.python }}
+          tag_name: tf-v${{ steps.generated.outputs.TENSORFLOW_VERSION }}-noavx-py${{ steps.setup_python.outputs.python-version }}-build${{ github.run_id }}
+          name: TensorFlow ${{ steps.generated.outputs.TENSORFLOW_VERSION }} (No AVX) for Python ${{ matrix.python }}
           body: |
             TensorFlow wheel built from source without AVX/AVX2 instructions.
-            TensorFlow Version: ${{ steps.generated.outputs.TENSORFLOW_REF }}
+            TensorFlow Version: ${{ steps.generated.outputs.TENSORFLOW_VERSION }}
             Python Version: ${{ matrix.python }}
             Target Architecture Flags: -march=nehalem -mno-avx -mno-avx2
             Built via GitHub Actions run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
