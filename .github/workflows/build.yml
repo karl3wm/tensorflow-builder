@@ -101,7 +101,16 @@ jobs:
       #     printenv | grep CC_ || echo "No CC_ environment variables set yet"
       #     echo "--- Python Site Packages ---"
       #     ls -l ${{ steps.generated.outputs.PYTHON_LIB_PATH }} || echo "Could not list site-packages"
-      - name: Configure TensorFlow
+      # ---------------------------------------------------------------------
+      # Tmate Debugging Step - uncomment/comment as needed
+      # This will pause the workflow and output SSH connection details
+      # Connect to the runner to manually inspect the environment and run commands
+      # - name: Setup tmate session for debugging
+      #   uses: mxschmitt/action-tmate@v3
+      #   timeout-minutes: 60
+      # ---------------------------------------------------------------------
+      - name: Configure and build TensorFlow
+        id: build
         working-directory: ./tensorflow
         env:
           # Environment variables for TensorFlow's configure script (non-interactive)
@@ -121,51 +130,37 @@ jobs:
           # --- CRUCIAL: Compiler flags to disable AVX/AVX2 ---
           # Target Nehalem (SSE4.2 baseline before AVX). Adjust if needed.
           CC_OPT_FLAGS: '-march=nehalem -mno-avx -mno-avx2 -O3'
+          TF_BUILD_FLAGS: "--config=monolithic --config=opt --copt=-march=nehalem --copt=-mno-avx --copt=-mno-avx2 --copt=-O3 --verbose_failures" # --toolchain_resolution_debug=@bazel_tools//tools/cpp:toolchain_type --subcommands # Build the pip package with enhanced verbosity
           TF_NEED_OPENCL_SYCL: '0'
           TF_NEED_COMPUTECPP: '0'
           TF_NEED_MPI: '0'
           TF_NEED_TENSORRT: '0'
+          CONTAINER_TYPE: cpu # cpu gpu rocm
+          OS_TYPE: ubuntu # ubuntu macos
+          IS_NIGHTLY: 0
+          TF_PROJECT_NAME: "tensorflow_noavx"
+          TF_PIP_TEST_ROOT: .
+          TF_TEST_FLAGS:
+          TF_TESTS_FILTER_TAGS:
+          TF_TEST_TARGETS:
+          #HERMETIC_PYTHON_VERSION: ${{ steps.generated.outputs.TF_PYTHON_VERSION }}
+          #WHEEL_NAME: tensorflow_noavx_cpu
         run: |
           echo "Running ./configure with environment variables:"
           printenv | grep TF_ # Show TF vars being used
           printenv | grep CC_OPT_FLAGS # Show compiler flags being used
           ./configure
           echo "Configure finished."
-      # ---------------------------------------------------------------------
-      # Tmate Debugging Step - uncomment/comment as needed
-      # This will pause the workflow and output SSH connection details
-      # Connect to the runner to manually inspect the environment and run commands
-      # - name: Setup tmate session for debugging
-      #   uses: mxschmitt/action-tmate@v3
-      #   timeout-minutes: 60
-      # ---------------------------------------------------------------------
-      - name: Build TensorFlow Wheel
-        working-directory: ./tensorflow
-        env:
-          HERMETIC_PYTHON_VERSION: ${{ steps.generated.outputs.TF_PYTHON_VERSION }}
-          WHEEL_NAME: tensorflow_noavx_cpu
-        run: |
-          echo "Starting Bazel build..."
-          bazel build \
-            --config=opt \
-            --config=monolithic \
-            --copt=-march=nehalem \
-            --copt=-mno-avx \
-            --copt=-mno-avx2 \
-            --copt=-O3 \
-            --verbose_failures \
-            tensorflow/tools/pip_package:build_pip_package
-            #//tensorflow/tools/pip_package:wheel
-            # Build the pip package with enhanced verbosity
-            # --toolchain_resolution_debug=@bazel_tools//tools/cpp:toolchain_type \
-            # --subcommands \
+          echo "Starting Bazel build and creating wheel file ..."
+          . tensorflow/tools/ci_build/builds/pip_new.sh
 
-          echo "Bazel build finished. Creating wheel file..."
-          # Create the wheel package in /tmp/tensorflow_pkg (relative to workspace root)
-          ./bazel-bin/tensorflow/tools/pip_package/build_pip_package --cpu ../tmp/tensorflow_pkg
+          #echo "Bazel build finished. Creating wheel file..."
+          ## Create the wheel package in /tmp/tensorflow_pkg (relative to workspace root)
+          #./bazel-bin/tensorflow/tools/pip_package/build_pip_package --cpu ../tmp/tensorflow_pkg
 
-          echo "Wheel file created in ../tmp/tensorflow_pkg:"
-          ls ../tmp/tensorflow_pkg/*.whl
+          echo "Wheel file created in ${PIP_WHL_DIR}:"
+          ls "${PIP_WHL_DIR}"/*.whl
+          echo PIP_WHL_DIR="${PIP_WHL_DIR}" >> $GITHUB_OUTPUT
       - name: Always Save Bazel Cache
         if: always()
         uses: actions/cache/save@v4
@@ -179,7 +174,7 @@ jobs:
         with:
           name: tensorflow-noavx-tf${{ steps.generated.outputs.TF_VERSION }}-py${{ steps.setup_python.outputs.python-version }}
           # Path is relative to the workspace root
-          path: tmp/tensorflow_pkg/*.whl
+          path: ${{ steps.build.outputs.PIP_WHL_DIR }}/*.whl
           retention-days: 7
   # Optional: Job to create a GitHub Release and upload the wheel there
   release:
