@@ -140,32 +140,32 @@ jobs:
       #   timeout-minutes: 60
       # ---------------------------------------------------------------------
       - name: Build TensorFlow Wheel
+        id: build
         working-directory: ./tensorflow
         env:
-          HERMETIC_PYTHON_VERSION: ${{ steps.generated.outputs.TF_PYTHON_VERSION }}
-          WHEEL_NAME: tensorflow_noavx_cpu
+          #HERMETIC_PYTHON_VERSION: ${{ steps.generated.outputs.TF_PYTHON_VERSION }}
+          #WHEEL_NAME: tensorflow_noavx_cpu
+          CONTAINER_TYPE: cpu # cpu gpu rocm
+          OS_TYPE: ubuntu # ubuntu macos
+          IS_NIGHTLY: 0
+          TF_PYTHON_VERSION: python${{ steps.generated.outputs.TF_PYTHON_VERSION }}
+          TF_BUILD_FLAGS: "--config=monolithic --config=opt --copt=-march=nehalem --copt=-mno-avx --copt=-mno-avx2 --copt=-O3 --verbose_failures" # --toolchain_resolution_debug=@bazel_tools//tools/cpp:toolchain_type --subcommands # Build the pip package with enhanced verbosity
+          TF_PROJECT_NAME: "tensorflow_noavx"
+          TF_PIP_TEST_ROOT: .
+          TF_TEST_FLAGS:
+          TF_TESTS_FILTER_TAGS:
+          TF_TEST_TARGETS:
         run: |
-          echo "Starting Bazel build..."
-          bazel build \
-            --config=opt \
-            --config=monolithic \
-            --copt=-march=nehalem \
-            --copt=-mno-avx \
-            --copt=-mno-avx2 \
-            --copt=-O3 \
-            --verbose_failures \
-            tensorflow/tools/pip_package:build_pip_package
-            #//tensorflow/tools/pip_package:wheel
-            # Build the pip package with enhanced verbosity
-            # --toolchain_resolution_debug=@bazel_tools//tools/cpp:toolchain_type \
-            # --subcommands \
+          echo "Starting Bazel build and creating wheel file ..."
+          . tensorflow/tools/ci_build/builds/pip_new.sh
 
-          echo "Bazel build finished. Creating wheel file..."
-          # Create the wheel package in /tmp/tensorflow_pkg (relative to workspace root)
-          ./bazel-bin/tensorflow/tools/pip_package/build_pip_package --cpu ../tmp/tensorflow_pkg
+          #echo "Bazel build finished. Creating wheel file..."
+          ## Create the wheel package in /tmp/tensorflow_pkg (relative to workspace root)
+          #./bazel-bin/tensorflow/tools/pip_package/build_pip_package --cpu ../tmp/tensorflow_pkg
 
-          echo "Wheel file created in ../tmp/tensorflow_pkg:"
-          ls ../tmp/tensorflow_pkg/*.whl
+          echo "Wheel file created in ${PIP_WHL_DIR}:"
+          ls "${PIP_WHL_DIR}"/*.whl
+          echo PIP_WHL_DIR="${PIP_WHL_DIR}" >> $GITHUB_OUTPUT
       - name: Always Save Bazel Cache
         if: always()
         uses: actions/cache/save@v4
@@ -179,7 +179,7 @@ jobs:
         with:
           name: tensorflow-noavx-tf${{ steps.generated.outputs.TF_VERSION }}-py${{ steps.setup_python.outputs.python-version }}
           # Path is relative to the workspace root
-          path: tmp/tensorflow_pkg/*.whl
+          path: ${{ steps.build.outputs.PIP_WHL_DIR }}/*.whl
           retention-days: 7
   # Optional: Job to create a GitHub Release and upload the wheel there
   release:
