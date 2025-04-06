@@ -34,7 +34,7 @@ jobs:
           git init .
           git remote add origin https://github.com/python/cpython
           git fetch --depth=1 --filter=tree:0 origin 'refs/heads/3.*:refs/heads/3.*'
-          echo "versions=$(git branch | head -n 8 | shuf | jq --raw-input --slurp --compact-output 'ltrimstr(" ")|rtrimstr("\n")|split("\n")|.[0:4]')" | tee -a $GITHUB_OUTPUT
+          echo "versions=$(git branch | head -n 8 | shuf | jq --raw-input --slurp --compact-output 'ltrimstr(" ")|rtrimstr("\n")|split("\n")|.[0:2]')" | tee -a $GITHUB_OUTPUT
   build:
     runs-on: ubuntu-22.04
     needs: version_enumeration
