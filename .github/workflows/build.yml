@@ -54,11 +54,14 @@ jobs:
           . /etc/os-release
           wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu${VERSION_ID/.}/x86_64/cuda-keyring_1.1-1_all.deb
           sudo dpkg -i cuda-keyring_1.1-1_all.deb
-          #sudo apt-get remove --yes --quiet firefox
-          #sudo apt-get remove --yes --quiet firefox clang*
           sudo apt-get update --yes --quiet
+          sudo apt-get remove --yes --quiet firefox clang*
           #sudo apt-get dist-upgrade --yes --quiet # slows down build
-          sudo apt-get install --yes --quiet build-essential curl git python3-dev pkg-config coreutils zip unzip clang-17 clang-18 lld wget sed cuda-toolkit-12-3 cudnn-cuda-12
+          sudo apt-get install --yes --quiet build-essential curl git python3-dev pkg-config coreutils zip unzip lld wget sed cuda-toolkit-12-3 cudnn-cuda-12
+          echo "Installing clang"
+          wget https://github.com/llvm/llvm-project/releases/download/llvmorg-17.0.2/clang+llvm-17.0.2-x86_64-linux-gnu-ubuntu-${VERSION_ID}.tar.xz
+          tar -xf clang+llvm-17.0.2-x86_64-linux-gnu-ubuntu-${VERSION_ID}.tar.xz
+          cp -r clang+llvm-17.0.2-x86_64-linux-gnu-ubuntu-${VERSION_ID}/* /usr
           echo "Attempting to install latest Bazelisk"
           mkdir -p $HOME/bin
           wget --progress=dot:mega https://github.com/bazelbuild/bazelisk/releases/latest/download/bazelisk-linux-amd64 -O $HOME/bin/bazel
@@ -66,6 +69,7 @@ jobs:
           # Add to PATH for subsequent steps
           echo "$HOME/bin" >> $GITHUB_PATH
           echo "Bazel installation complete."
+          hash -r
           type -p bazel
       #- name: Checkout TensorFlow ${{ matrix.tensorflow }}
       #  run: |
