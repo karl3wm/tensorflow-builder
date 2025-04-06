@@ -6,7 +6,7 @@ on:
       tf_version:
         description: 'TensorFlow Version (e.g., 2.15.0)'
         required: true
-        default: '2.15.1'
+        default: '2.18.1'
       python_version:
         description: 'Python Version (e.g., 3.9, 3.10, 3.11)'
         required: true
@@ -174,7 +174,7 @@ jobs:
           --verbose_failures \
           --toolchain_resolution_debug=@bazel_tools//tools/cpp:toolchain_type \
           --subcommands \
-          //tensorflow/tools/pip_package:build_pip_package
+          //tensorflow/tools/pip_package:wheel --repo_env=WHEEL_NAME=tensorflow_noavx_cpu
           # Build the pip package with enhanced verbosity
 
         echo "Bazel build finished. Creating wheel file..."
