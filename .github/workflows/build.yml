@@ -19,13 +19,13 @@ jobs:
       tensorflow: ${{ steps.generated.outputs.TENSORFLOW_VERSION }}
       python: ${{ steps.setup_python.outputs.python-version }}
 
+    steps:
     - name: Set up Python ${{ matrix.python }}
       id: setup_python
       uses: actions/setup-python@v4
       with:
         python-version: ${{ matrix.python }}
 
-    steps:
     - name: Checkout TensorFlow Source Code
       uses: actions/checkout@v4
       with:
