@@ -140,9 +140,9 @@ jobs:
           IS_NIGHTLY: 0
           TF_PROJECT_NAME: "tensorflow_noavx"
           KOKORO_ARTIFACTS_DIR: ../tmp
-          TF_TEST_FLAGS:
-          TF_TESTS_FILTER_TAGS:
-          TF_TEST_TARGETS:
+          TF_TEST_FLAGS: "--verbose_failures=true --build_tests_only --test_output=errors"
+          TF_TEST_FILTER_TAGS: "-no_oss,-oss_excluded,-oss_serial,-gpu,-tpu,-benchmark-test"
+          TF_TEST_TARGETS: "//tensorflow/... -//tensorflow/compiler/... -//tensorflow/contrib/..."
           #HERMETIC_PYTHON_VERSION: ${{ steps.generated.outputs.TF_PYTHON_VERSION }}
           #WHEEL_NAME: tensorflow_noavx_cpu
         run: |
