@@ -104,7 +104,7 @@ jobs:
           #sudo apt-get remove --yes --quiet firefox clang*
           sudo apt-get update --yes --quiet
           #sudo apt-get dist-upgrade --yes --quiet # slows down build
-          sudo apt-get install --yes --quiet cuda-toolkit-12-3 build-essential curl git python3-dev pkg-config zip unzip clang lld wget sed
+          sudo apt-get install --yes --quiet build-essential curl git python3-dev pkg-config coreutils zip unzip clang lld wget sed cuda-toolkit-12-3 cudnn-cuda-12
           echo "Attempting to install latest Bazelisk"
           mkdir -p $HOME/bin
           wget --progress=dot:mega https://github.com/bazelbuild/bazelisk/releases/latest/download/bazelisk-linux-amd64 -O $HOME/bin/bazel
