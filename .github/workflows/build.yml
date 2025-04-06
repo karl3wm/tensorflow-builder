@@ -25,6 +25,7 @@ jobs:
           repository: 'tensorflow/tensorflow'
           path: 'tensorflow'
           filter: 'blob:none'
+          fetch-tags: true
       # These outputs are used later in the run
       - name: Generate values available at runtime
         id: generated
