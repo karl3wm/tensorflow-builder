@@ -34,7 +34,7 @@ jobs:
           git init .
           git remote add origin https://github.com/python/cpython
           git fetch --depth=1 --filter=tree:0 origin 'refs/heads/3.*:refs/heads/3.*'
-          echo "versions=$(git branch | head -n 6| shuf | xargs echo -n | jq --raw-input --slurp --compact-output 'split(" ")|.[0:2]')" | tee -a $GITHUB_OUTPUT
+          echo "versions=$(git branch | head -n 3| shuf | xargs echo -n | jq --raw-input --slurp --compact-output 'split(" ")|.[0:3]')" | tee -a $GITHUB_OUTPUT
   build:
     runs-on: ubuntu-22.04
     needs: version_enumeration
@@ -175,8 +175,8 @@ jobs:
       - name: Configure and build TensorFlow
         id: build
         working-directory: ./tensorflow
-        #timeout-minutes: 300 # GitHub Actions maximum for free tier is 6 hours/job
-        timeout-minutes: 15 # short timeout for development
+        timeout-minutes: 300 # GitHub Actions maximum for free tier is 6 hours/job
+        #timeout-minutes: 15 # short timeout for development
         # env:
         #   # Environment variables for TensorFlow's configure script (non-interactive)
         #   PYTHON_BIN_PATH: ${{ steps.generated.outputs.PYTHON_BIN_PATH }}
