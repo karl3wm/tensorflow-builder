@@ -20,13 +20,14 @@ jobs:
       - name: Fetch recent TensorFlow tags
         id: tensorflow
         run: |
-          LATEST_TENSORFLOW_VERS=8
+          LATEST_TENSORFLOW_VERS=2
           mkdir -p tensorflow.git
           cd tensorflow.git
           git init .
           git remote add origin https://github.com/tensorflow/tensorflow
           git fetch --depth=1 --filter=tree:0 origin 'refs/tags/*:refs/tags/*'
-          echo "versions=$(git tag --list --sort=-creatordate 'v*.[0-9]' | head -n $LATEST_TENSORFLOW_VERS | shuf | xargs echo -n | jq --raw-input --slurp --compact-output 'split(" ")|.[0:8]')" | tee -a $GITHUB_OUTPUT
+          #                list tags in creation order                   | take first n of them and shuffle them  | convert the first 4 into a json array                                         | store the result
+          echo "versions=$(git tag --list --sort=-creatordate 'v*.[0-9]' | head -n $LATEST_TENSORFLOW_VERS | shuf | xargs echo -n | jq --raw-input --slurp --compact-output 'split(" ")|.[0:4]')" | tee -a $GITHUB_OUTPUT
       - name: Fetch recent Python versions
         id: python
         run: |
@@ -37,7 +38,8 @@ jobs:
           git init .
           git remote add origin https://github.com/python/cpython
           git fetch --depth=1 --filter=tree:0 origin 'refs/heads/3.*:refs/heads/3.*'
-          echo "versions=$(git branch | sort --ignore-leading-blanks --numeric --reverse --key 1.3 | tail -n +$((SKIP_PYTHON_VERS+1)) | head -n $LATEST_PYTHON_VERS | shuf | xargs echo -n | jq --raw-input --slurp --compact-output 'split(" ")|.[0:3]')" | tee -a $GITHUB_OUTPUT
+          #                list branches in numeric order                                          | take the first n of them and and shuffle them                         | convert the first 2 into a json array                                         | store the result
+          echo "versions=$(git branch | sort --ignore-leading-blanks --numeric --reverse --key 1.3 | tail -n +$((SKIP_PYTHON_VERS+1)) | head -n $LATEST_PYTHON_VERS | shuf | xargs echo -n | jq --raw-input --slurp --compact-output 'split(" ")|.[0:2]')" | tee -a $GITHUB_OUTPUT
   build:
     runs-on: ubuntu-22.04
     needs: version_enumeration
@@ -46,6 +48,7 @@ jobs:
       matrix:
         python: ${{ fromJSON(needs.version_enumeration.outputs.python) }}
         tensorflow: ${{ fromJSON(needs.version_enumeration.outputs.tensorflow) }}
+        acceleration: ['cpu', 'gpu', 'rocm']
     # cross-matrix concurrency isn't functional, half the jobs are canceled.
     # but cross-workflow concurrency works and also addresses shared space usage.
     # see https://github.com/orgs/community/discussions/63579#discussioncomment-6905355
@@ -114,8 +117,12 @@ jobs:
         run: |
           echo "Installing system packages."
           #sudo apt-get dist-upgrade --yes --quiet # slows down build
-          sudo apt-get install --yes --quiet build-essential curl git python3-dev pkg-config coreutils zip unzip xz-utils lld wget sed
-          #sudo apt-get install --yes --quiet build-essential curl git python3-dev pkg-config coreutils zip unzip xz-utils lld wget sed cuda-toolkit-12-3 cudnn-cuda-12
+          if [ "${{ matrix.acceleration }}" == "gpu" ]
+          then
+            sudo apt-get install --yes --quiet build-essential curl git python3-dev pkg-config coreutils zip unzip xz-utils lld wget sed cuda-toolkit-12-3 cudnn-cuda-12
+          else
+            sudo apt-get install --yes --quiet build-essential curl git python3-dev pkg-config coreutils zip unzip xz-utils lld wget sed
+          fi
           echo "Done installing system packages."
       - name: Install Bazel
         run: |
@@ -269,10 +276,14 @@ jobs:
           then
             echo "Running ./configure with environment variables:"
             export TF_ENABLE_XLA=1 TF_NEED_CUDA=0 TF_NEED_ROCM=0 TF_CONFIGURE_IOS=0 TF_SET_ANDROID_WORKSPACE=0
+            case "${{ matrix.acceleration }}" in
+            'gpu') TF_NEED_CUDA=1 ;;
+            'rocm') TF_NEED_ROCM=1 ;;
+            esac
             export CC_OPT_FLAGS='-march=nehalem -mno-avx -mno-avx2 -O3'
             export TF_BUILD_FLAGS="--config=monolithic --config=opt --verbose_failures" # --toolchain_resolution_debug=@bazel_tools//tools/cpp:toolchain_type --subcommands # Build the pip package with enhanced verbosity
             export HERMETIC_PYTHON_VERSION=${{ matrix.python }}
-            export TF_PROJECT_NAME=tensorflow_noavx_cpu
+            export TF_PROJECT_NAME=tensorflow_noavx_${{ matrix.acceleration }}
             export PROJECT_NAME="$TF_PROJECT_NAME"
             export WHEEL_NAME="$TF_PROJECT_NAME"
             printenv | grep TF_ # Show TF vars being used
