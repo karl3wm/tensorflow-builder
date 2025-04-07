@@ -265,8 +265,10 @@ jobs:
                 do
                         #cp -v "$fn" "${fn%_*}_${py_ver_minor}.txt"
                         # filter out tensorflow-built dependencies which won't be available
-                        grep -v '^tensorflow' ci/official/requirements_updater/requirements.in > "${fn%_*}_${py_ver_minor}.txt"
+                        REQUIREMENTSFN="${fn%_*}_${py_ver_minor}.txt"
+                        grep '^tensorflow' ci/official/requirements_updater/requirements.in | tee "$REQUIREMENTSFN"
                 done
+                python${HERMETIC_PYTHON_VERSION} -m pip install -r "$REQUIREMENTSFN"
                 sed -i "s/\"${py_ver_major}\.${py_ver_alternate}\"/\"${py_ver_major}.${py_ver_minor}\"/g; s/_lock_${py_ver_major}_${py_ver_alternate}\.txt/_lock_${py_ver_major}_${py_ver_minor}.txt/g" WORKSPACE
                 grep requirements_lock WORKSPACE
                 bazel run //ci/official/requirements_updater:requirements.update # uses HERMETIC_PYTHON_VERSION
