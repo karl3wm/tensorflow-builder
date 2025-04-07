@@ -175,8 +175,8 @@ jobs:
       - name: Configure and build TensorFlow
         id: build
         working-directory: ./tensorflow
-        timeout-minutes: 300 # GitHub Actions maximum for free tier is 6 hours/job
-        #timeout-minutes: 15 # short timeout for development
+        #timeout-minutes: 300 # GitHub Actions maximum for free tier is 6 hours/job
+        timeout-minutes: 15 # short timeout for development
         # env:
         #   # Environment variables for TensorFlow's configure script (non-interactive)
         #   PYTHON_BIN_PATH: ${{ steps.generated.outputs.PYTHON_BIN_PATH }}
@@ -276,11 +276,9 @@ jobs:
       - name: Always Remove Inaccessible Files Prior To Saving Cache
         if: always()
         run: |
-          for path in
-            ~/.cache/bazel
-            ~/.cache/bazelisk
-            tensorflow/build_output/cache
+          for path in ~/.cache/bazel ~/.cache/bazelisk tensorflow/build_output/cache
           do
+            if ! [ -d "$path" ]; then continue; fi
             find "$path" -name execroot | xargs rm -vrf
             find "$path" -name sandbox | xags rm -vrf
           done
