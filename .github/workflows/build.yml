@@ -20,7 +20,7 @@ jobs:
       - name: Fetch recent TensorFlow tags
         id: tensorflow
         run: |
-          LATEST_TENSORFLOW_VERS=7
+          LATEST_TENSORFLOW_VERS=6
           mkdir -p tensorflow.git
           cd tensorflow.git
           git init .
@@ -31,7 +31,7 @@ jobs:
         id: python
         run: |
           SKIP_PYTHON_VERS=1
-          LATEST_PYTHON_VERS=3
+          LATEST_PYTHON_VERS=1
           mkdir -p python.git
           cd python.git
           git init .
@@ -46,9 +46,12 @@ jobs:
       matrix:
         python: ${{ fromJSON(needs.version_enumeration.outputs.python) }}
         tensorflow: ${{ fromJSON(needs.version_enumeration.outputs.tensorflow) }}
-    concurrency:
-      group: ${{ github.run_id }}-${{ matrix.tensorflow }}
-      cancel-in-progress: false
+    # cross-matrix concurrency isn't functional, half the jobs are canceled.
+    # but cross-workflow concurrency works and also addresses shared space usage.
+    # see https://github.com/orgs/community/discussions/63579#discussioncomment-6905355
+    # concurrency:
+    #   group: ${{ github.run_id }}-${{ matrix.tensorflow }}
+    #   cancel-in-progress: false
     steps:
       - name: Disable man-db/auto-update and remove some packages
         run: |
