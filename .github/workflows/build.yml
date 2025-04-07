@@ -44,10 +44,11 @@ jobs:
         python: ${{ fromJSON(needs.version_enumeration.outputs.python) }}
         tensorflow: ${{ fromJSON(needs.version_enumeration.outputs.tensorflow) }}
     steps:
-      - name: Disable man-db/auto-update to speed apt
+      - name: Disable man-db/auto-update and remove some packages
         run: |
           echo "set man-db/auto-update false" | sudo debconf-communicate
           sudo dpkg-reconfigure man-db
+          sudo apt-get remove --yes --quiet firefox clang\*
       - name: Set up Python ${{ matrix.python }}
         id: setup_python
         uses: actions/setup-python@v4
@@ -55,13 +56,20 @@ jobs:
           python-version: ${{ matrix.python }}
       # - name: Free disk space (Ubuntu)
       #   uses: jlumbroso/free-disk-space@main
-      - name: Install Build Dependencies
+      - name: Add CUDA repositories
         run: |
           . /etc/os-release
           wget --progress=dot:mega https://developer.download.nvidia.com/compute/cuda/repos/ubuntu${VERSION_ID/.}/x86_64/cuda-keyring_1.1-1_all.deb
           sudo dpkg -i cuda-keyring_1.1-1_all.deb
           rm cuda-keyring_1.1-1_all.deb
-          sudo apt-get remove --yes --quiet firefox clang*
+      - name: Install LLVM
+        run: |
+          #. /etc/os-release
+          #echo "Installing clang"
+          #wget --progress=dot:mega https://github.com/llvm/llvm-project/releases/download/llvmorg-17.0.2/clang+llvm-17.0.2-x86_64-linux-gnu-ubuntu-${VERSION_ID}.tar.xz -O - | xzcat | sudo tar -xvf - --directory /usr --strip-components=1
+          #echo "Clang installation complete."
+          #hash -r
+          #type -p clang
           echo "Installing LLVM."
           wget https://apt.llvm.org/llvm.sh
           chmod +x llvm.sh
@@ -71,15 +79,14 @@ jobs:
           echo "LLVM installation complete."
           hash -r
           readlink -f $(type -p clang)
+      - name: Install system packages
+        run: |
           echo "Installing system packages."
           #sudo apt-get dist-upgrade --yes --quiet # slows down build
           sudo apt-get install --yes --quiet build-essential curl git python3-dev pkg-config coreutils zip unzip xz-utils lld wget sed cuda-toolkit-12-3 cudnn-cuda-12
           echo "Done installing system packages."
-          #echo "Installing clang"
-          #wget --progress=dot:mega https://github.com/llvm/llvm-project/releases/download/llvmorg-17.0.2/clang+llvm-17.0.2-x86_64-linux-gnu-ubuntu-${VERSION_ID}.tar.xz -O - | xzcat | sudo tar -xvf - --directory /usr --strip-components=1
-          #echo "Clang installation complete."
-          #hash -r
-          #type -p clang
+      - name: Install Bazel
+        run: |
           echo "Attempting to install latest Bazelisk"
           wget --progress=dot:mega https://github.com/bazelbuild/bazelisk/releases/latest/download/bazelisk-linux-amd64
           chmod +x bazelisk-linux-amd64
