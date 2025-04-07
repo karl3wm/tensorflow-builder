@@ -150,7 +150,8 @@ jobs:
             ~/.cache/bazel
             ~/.cache/bazelisk
             tensorflow/build_output/cache
-          key: bazel-cache-os${{ runner.os }}-tf${{ matrix.tensorflow }}-py${{ steps.setup_python.outputs.python-version }}-bazel${{ steps.bazel_version.outputs.bazel_version }}-run
+          restore-keys: |
+            bazel-cache-os${{ runner.os }}-tf${{ matrix.tensorflow }}-py${{ steps.setup_python.outputs.python-version }}-bazel${{ steps.bazel_version.outputs.bazel_version }}-run
       # - name: Dump Configuration and Environment (Troubleshooting)
       #   run: |
       #     echo "--- System Info ---"
@@ -241,9 +242,11 @@ jobs:
             echo "Running ./configure with environment variables:"
             export TF_ENABLE_XLA=1 TF_NEED_CUDA=0 TF_NEED_ROCM=0 TF_CONFIGURE_IOS=0 TF_SET_ANDROID_WORKSPACE=0
             export CC_OPT_FLAGS='-march=nehalem -mno-avx -mno-avx2 -O3'
-            export TF_BUILD_FLAGS="--config=monolithic --config=opt --copt=-march=nehalem --verbose_failures" # --toolchain_resolution_debug=@bazel_tools//tools/cpp:toolchain_type --subcommands # Build the pip package with enhanced verbosity
+            export TF_BUILD_FLAGS="--config=monolithic --config=opt --verbose_failures" # --toolchain_resolution_debug=@bazel_tools//tools/cpp:toolchain_type --subcommands # Build the pip package with enhanced verbosity
             export HERMETIC_PYTHON_VERSION=${{ matrix.python }}
-            export WHEEL_NAME=tensorflow_noavx_cpu
+            export TF_PROJECT_NAME=tensorflow_noavx_cpu
+            export PROJECT_NAME="$TF_PROJECT_NAME"
+            export WHEEL_NAME="$TF_PROJECT_NAME"
             printenv | grep TF_ # Show TF vars being used
             printenv | grep CC_OPT_FLAGS # Show compiler flags being used
             ./configure
@@ -276,8 +279,18 @@ jobs:
                 echo "requirements_lock_${py_ver_major}_${py_ver_minor}.txt exists"
             fi
 
-            bazel build $TF_BUILD_FLAGS //tensorflow/tools/pip_package:wheel
-            PIP_WHL_DIR="$(pwd)"/bazel-bin/tensorflow/tools/pip_package/wheel_house
+            if [ -e tensorflow/tools/pip_package/build_pip_package.sh ]
+            then
+                # < 2.17
+                # The documentation for building tensorflow 2.16 is in commit 57a0d991e684cd01cec3ac152112a7df3a18a26a of the tensorflow docs repository
+                bazel build $TF_BUILD_FLAGS //tensorflow/tools/pip_package:build_pip_package
+                PIP_WHL_DIR=/tmp/tensorflow_pkg
+                ./bazel-bin/tensorflow/tools/pip_package/build_pip_package "$PIP_WHL_DIR"
+            else
+                # >= 2.17
+                bazel build $TF_BUILD_FLAGS //tensorflow/tools/pip_package:wheel
+                PIP_WHL_DIR="$(pwd)"/bazel-bin/tensorflow/tools/pip_package/wheel_house
+            fi
 
             #echo "Migrating build_pip_package vs build_pip_package_py ..."
             #find -name build_pip_package.py && sed -i 's!PIP_BUILD_TARGET="//tensorflow/tools/pip_package:build_pip_package"!PIP_BUILD_TARGET="//tensorflow/tools/pip_package:build_pip_package_py"!' tensorflow/tools/ci_build/builds/pip_new.sh

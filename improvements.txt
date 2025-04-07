@@ -10,3 +10,5 @@ Different platforms are referenced in that ci_build folder.
   also look quite useful but have not quite stabilized yet after many versions, documented in the readme in the parent ci folder
 
 Finding the built tensorflow dockers would find dockerfiles that run them and may be the most promising avenue here.
+
+Note that docker builds are documented in the tensorflow build docs.
