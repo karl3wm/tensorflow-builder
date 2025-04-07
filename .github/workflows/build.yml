@@ -20,7 +20,7 @@ jobs:
       - name: Fetch recent TensorFlow tags
         id: tensorflow
         run: |
-          LATEST_TENSORFLOW_VERS=2
+          LATEST_TENSORFLOW_VERS=1 # don't forget to enable "Free disk space" below if raising this
           mkdir -p tensorflow.git
           cd tensorflow.git
           git init .
@@ -90,12 +90,14 @@ jobs:
           echo "nextkey=$NEXT_KEY" >> $GITHUB_OUTPUT
       # - name: Free disk space (Ubuntu)
       #   uses: jlumbroso/free-disk-space@main
-      - name: Add CUDA repositories
+      - name: Add CUDA and ROCm repositories
         run: |
           . /etc/os-release
           wget --progress=dot:mega https://developer.download.nvidia.com/compute/cuda/repos/ubuntu${VERSION_ID/.}/x86_64/cuda-keyring_1.1-1_all.deb
           sudo dpkg -i cuda-keyring_1.1-1_all.deb
           rm cuda-keyring_1.1-1_all.deb
+          echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/rocm.gpg] https://repo.radeon.com/rocm/apt/6.3.3 ${UBUNTU_CODENAME} main" | sudo tee --a /etc/apt/sources.list.d/rocm.list
+          echo -e 'Package: *\nPin: release o=repo.radeon.com\nPin-Priority: 600' | sudo tee /etc/apt/preferences.d/rocm-pin-600
       - name: Install LLVM
         run: |
           #. /etc/os-release
@@ -117,12 +119,21 @@ jobs:
         run: |
           echo "Installing system packages."
           #sudo apt-get dist-upgrade --yes --quiet # slows down build
-          if [ "${{ matrix.acceleration }}" == "gpu" ]
-          then
-            sudo apt-get install --yes --quiet build-essential curl git python3-dev pkg-config coreutils zip unzip xz-utils lld wget sed cuda-toolkit-12-3 cudnn-cuda-12
-          else
-            sudo apt-get install --yes --quiet build-essential curl git python3-dev pkg-config coreutils zip unzip xz-utils lld wget sed
-          fi
+          sudo apt-get install --yes --quiet build-essential curl git python3-dev pkg-config coreutils zip unzip xz-utils lld wget sed
+          case "${{ matrix.acceleration }}" in
+          'gpu')
+            sudo apt-get install --yes --quiet cuda-toolkit-12-3 cudnn-cuda-12
+          ;;
+          'rocm')
+            sudo apt-get install --yes --quiet rocm
+            echo /opt/rocm/lib | sudo tee -a /etc/ld.so.conf.d/rocm.conf
+            echo /opt/rocm/lib | sudo tee -a /etc/ld.so.conf.d/rocm.conf
+            sudo ldconfig
+            sudo update-alternatives --list rocm
+            sudo rocminfo
+            sudo clinfo
+          ;;
+          esac
           echo "Done installing system packages."
       - name: Install Bazel
         run: |
