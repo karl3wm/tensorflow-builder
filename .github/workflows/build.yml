@@ -132,8 +132,6 @@ jobs:
             echo /opt/rocm/lib | sudo tee -a /etc/ld.so.conf.d/rocm.conf
             sudo ldconfig
             sudo update-alternatives --list rocm
-            sudo rocminfo
-            sudo clinfo
           ;;
           esac
           echo "Done installing system packages."
