@@ -10,5 +10,5 @@ on:
       - '.github/workflows/**' # Only run if workflow files change
 jobs:
   sequential_build:
-    uses: karl3wm/tensorflow-builder/.github/workflows/build.yaml@main
+    uses: ./.github/workflows/build.yaml
     concurrency: ${{ github.run_id }}
