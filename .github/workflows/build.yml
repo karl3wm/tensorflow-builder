@@ -53,8 +53,8 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python }}
-      # - name: Free disk space (Ubuntu)
-      #   uses: jlumbroso/free-disk-space@main
+      - name: Free disk space (Ubuntu)
+        uses: jlumbroso/free-disk-space@main
       - name: Install Build Dependencies
         run: |
           . /etc/os-release
@@ -176,7 +176,7 @@ jobs:
         id: build
         working-directory: ./tensorflow
         #timeout-minutes: 300 # GitHub Actions maximum for free tier is 6 hours/job
-        timeout-minutes: 20 # short timeout for development
+        timeout-minutes: 15 # short timeout for development
         # env:
         #   # Environment variables for TensorFlow's configure script (non-interactive)
         #   PYTHON_BIN_PATH: ${{ steps.generated.outputs.PYTHON_BIN_PATH }}
