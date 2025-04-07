@@ -238,8 +238,28 @@ jobs:
             printenv | grep CC_OPT_FLAGS # Show compiler flags being used
             ./configure
             echo "Configure finished."
+
+            py_ver_major=${HERMETIC_PYTHON_VERSION%.*}
+            py_ver_minor=${HERMETIC_PYTHON_VERSION#*.}
+            if ! [ -e requirements_lock_${py_ver_major}_${py_ver_minor}.txt ]
+            then
+                for offset in 1 -1 2 -2
+                do
+                        py_ver_alternate=$((py_ver_minor+offset))
+                        if [ -e requirements_lock_${py_ver_major}_${py_ver_alternate}.txt ]
+                        then
+                                break
+                        fi
+                done
+                find -name requirements_lock_${py_ver_major}_${py_ver_minor}.txt | while read fn
+                do
+                        cp -v "$fn" "${fn%_*}_${py_ver_alternate}.txt"
+                done
+            fi
+
             bazel build $TF_BUILD_FLAGS //tensorflow/tools/pip_package:wheel
             PIP_WHL_DIR="$(pwd)"/bazel-bin/tensorflow/tools/pip_package/wheel_house
+
             #echo "Migrating build_pip_package vs build_pip_package_py ..."
             #find -name build_pip_package.py && sed -i 's!PIP_BUILD_TARGET="//tensorflow/tools/pip_package:build_pip_package"!PIP_BUILD_TARGET="//tensorflow/tools/pip_package:build_pip_package_py"!' tensorflow/tools/ci_build/builds/pip_new.sh
             #echo "Running Bazel build and creating wheel file ..."
