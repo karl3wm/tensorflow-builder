@@ -69,7 +69,7 @@ jobs:
           CACHES_API="/repos/${{ github.repository }}/actions/caches"
           for arg in gh api "${CACHES_API}"?key="$KEY_PREFIX"\&sort=created_at; do echo "- '$arg'"; done
           LATEST_KEY="$(gh api "${CACHES_API}"?key="$KEY_PREFIX"\&sort=created_at | jq -r '.actions_caches[0].key')"
-          gh api "${CACHES_API}"?key="$KEY_PREFIX"\&sort=created_at | jq -r '.actions_caches[1:30].key' | while read old_key
+          gh api "${CACHES_API}"?key="$KEY_PREFIX"\&sort=created_at | jq -r '.actions_caches[1:30][].key' | while read old_key
           do
                 gh api --method DELETE "${CACHES_API}"?key="$old_key"
           done
