@@ -47,7 +47,8 @@ jobs:
         python: ${{ fromJSON(needs.version_enumeration.outputs.python) }}
         tensorflow: ${{ fromJSON(needs.version_enumeration.outputs.tensorflow) }}
     concurrency:
-      group: ${{ matrix.tensorflow }}
+      group: ${{ github.run_id }}-${{ matrix.tensorflow }}
+      cancel-in-progress: false
     steps:
       - name: Disable man-db/auto-update and remove some packages
         run: |
