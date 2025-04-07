@@ -66,10 +66,11 @@ jobs:
           wget https://apt.llvm.org/llvm.sh
           chmod +x llvm.sh
           sudo ./llvm.sh 17
+          sudo update-alternatives --install /usr/bin/clang clang /usr/bin/clang-17
           rm llvm.sh
           echo "LLVM installation complete."
           hash -r
-          type -p clang
+          readlink -f $(type -p clang)
           echo "Installing system packages."
           #sudo apt-get dist-upgrade --yes --quiet # slows down build
           sudo apt-get install --yes --quiet build-essential curl git python3-dev pkg-config coreutils zip unzip xz-utils lld wget sed cuda-toolkit-12-3 cudnn-cuda-12
