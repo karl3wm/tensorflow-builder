@@ -63,12 +63,13 @@ jobs:
           sudo apt-get install --yes --quiet jq coreutils
           env
           KEY_PREFIX="bazel-cache-os${{ runner.os }}-tf${{ matrix.tensorflow }}-py${{ steps.setup_python.outputs.python-version }}-"
-          CACHES_API="-H 'Accept: application/vnd.github+json' -H 'X-GitHub-Api-Version: 2022-11-28' /repos/${{ github.repository_owner }}/${{ github.repository }}/actions/caches"
-          for arg in gh api ${CACHES_API}?key="$KEY_PREFIX"\&sort=created_at; do echo "- '$arg'"; done
-          LATEST_KEY="$(gh api ${CACHES_API}?key="$KEY_PREFIX"\&sort=created_at | jq -r '.actions_caches[0].key')"
-          gh api ${CACHES_API}?key="$KEY_PREFIX"\&sort=created_at | jq -r '.actions_caches[1:30].key' | while read old_key
+          #CACHES_API="-H 'Accept: application/vnd.github+json' -H 'X-GitHub-Api-Version: 2022-11-28' /repos/${{ github.repository_owner }}/${{ github.repository }}/actions/caches"
+          CACHES_API="/repos/${{ github.repository_owner }}/${{ github.repository }}/actions/caches"
+          #for arg in gh api "${CACHES_API}"?key="$KEY_PREFIX"\&sort=created_at; do echo "- '$arg'"; done
+          LATEST_KEY="$(gh api "${CACHES_API}"?key="$KEY_PREFIX"\&sort=created_at | jq -r '.actions_caches[0].key')"
+          gh api "${CACHES_API}"?key="$KEY_PREFIX"\&sort=created_at | jq -r '.actions_caches[1:30].key' | while read old_key
           do
-                gh api --method DELETE ${CACHES_API}?key="$old_key"
+                gh api --method DELETE "${CACHES_API}"?key="$old_key"
           done
           echo "lastkey=$LATEST_KEY" >> $GITHUB_OUTPUT
           echo "nextkey=${KEY_PREFIX}run${{ github.run_id }}.${{ github.run_attempt }}" >> $GITHUB_OUTPUT
