@@ -73,7 +73,7 @@ jobs:
         run: |
           sudo apt-get install --yes --quiet jq coreutils
           #env | sort
-          KEY_PREFIX="bazel-cache-os${{ runner.os }}-tf${{ matrix.tensorflow }}-py${{ steps.setup_python.outputs.python-version }}-"
+          KEY_PREFIX="bazel-cache-os${{ runner.os }}-tf${{ matrix.tensorflow }}-py${{ steps.setup_python.outputs.python-version }}-${{ matrix.acceleration }}"
           #CACHES_API="-H 'Accept: application/vnd.github+json' -H 'X-GitHub-Api-Version: 2022-11-28' /repos/${{ github.repository }}/actions/caches"
           CACHES_API="/repos/${{ github.repository }}/actions/caches"
           #for arg in gh api "${CACHES_API}"?key="$KEY_PREFIX"\&sort=size_in_bytes; do echo "- '$arg'"; done
@@ -83,7 +83,7 @@ jobs:
                 echo "Deleting key $old_key"
                 gh api --method DELETE "${CACHES_API}"?key="$old_key"
           done
-          NEXT_KEY="${KEY_PREFIX}${{ matrix.acceleration }}-run${{ github.run_id }}.${{ github.run_attempt }}"
+          NEXT_KEY="${KEY_PREFIX}run${{ github.run_id }}.${{ github.run_attempt }}"
           echo "Load key: $LATEST_KEY"
           echo "save key: $NEXT_KEY"
           echo "lastkey=$LATEST_KEY" >> $GITHUB_OUTPUT
