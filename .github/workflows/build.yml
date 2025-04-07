@@ -20,7 +20,7 @@ jobs:
       - name: Fetch recent TensorFlow tags
         id: tensorflow
         run: |
-          LATEST_TENSORFLOW_VERS=6
+          LATEST_TENSORFLOW_VERS=7
           mkdir -p tensorflow.git
           cd tensorflow.git
           git init .
@@ -30,8 +30,8 @@ jobs:
       - name: Fetch recent Python versions
         id: python
         run: |
-          SKIP_PYTHON_VERS=0
-          LATEST_PYTHON_VERS=2
+          SKIP_PYTHON_VERS=1
+          LATEST_PYTHON_VERS=1
           mkdir -p python.git
           cd python.git
           git init .
