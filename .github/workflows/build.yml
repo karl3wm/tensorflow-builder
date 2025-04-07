@@ -262,6 +262,8 @@ jobs:
                 do
                         cp -v "$fn" "${fn%_*}_${py_ver_minor}.txt"
                 done
+                sed -i "s/\"${py_ver_major}\.${py_ver_alternate}\"/\"${py_ver_major}.${py_ver_minor}\"/g; s/_lock_${py_ver_major}_${py_ver_alternate}\.txt/_lock_${py_ver_major}_${py_ver_minor}.txt/g" WORKSPACE
+                grep requirements_lock WORKSPACE
             else
                 echo "requirements_lock_${py_ver_major}_${py_ver_minor}.txt exists"
             fi
