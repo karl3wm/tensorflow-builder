@@ -232,7 +232,7 @@ jobs:
             export TF_ENABLE_XLA=1 TF_NEED_CUDA=0 TF_NEED_ROCM=0 TF_CONFIGURE_IOS=0 TF_SET_ANDROID_WORKSPACE=0
             export CC_OPT_FLAGS='-march=nehalem -mno-avx -mno-avx2 -O3'
             export TF_BUILD_FLAGS="--config=monolithic --config=opt --copt=-march=nehalem --verbose_failures" # --toolchain_resolution_debug=@bazel_tools//tools/cpp:toolchain_type --subcommands # Build the pip package with enhanced verbosity
-            export HERMETIC_PYTHON_VERSION=${{ steps.setup_python.outputs.python-version }}
+            export HERMETIC_PYTHON_VERSION=${{ matrix.python }}
             export WHEEL_NAME=tensorflow_noavx_cpu
             printenv | grep TF_ # Show TF vars being used
             printenv | grep CC_OPT_FLAGS # Show compiler flags being used
