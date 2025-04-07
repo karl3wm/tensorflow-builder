@@ -59,6 +59,8 @@ jobs:
           python-version: ${{ matrix.python }}
       - name: Plan caching
         id: caching
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           sudo apt-get install --yes --quiet jq coreutils
           env
