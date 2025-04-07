@@ -150,8 +150,7 @@ jobs:
             ~/.cache/bazel
             ~/.cache/bazelisk
             tensorflow/build_output/cache
-          restore-keys: |
-            bazel-cache-os${{ runner.os }}-tf${{ matrix.tensorflow }}-py${{ steps.setup_python.outputs.python-version }}-bazel${{ steps.bazel_version.outputs.bazel_version }}-run
+          key: bazel-cache-os${{ runner.os }}-tf${{ matrix.tensorflow }}-py${{ steps.setup_python.outputs.python-version }}-bazel${{ steps.bazel_version.outputs.bazel_version }}-run
       # - name: Dump Configuration and Environment (Troubleshooting)
       #   run: |
       #     echo "--- System Info ---"
