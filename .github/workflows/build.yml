@@ -65,8 +65,8 @@ jobs:
           sudo apt-get install --yes --quiet jq coreutils
           env | sort
           KEY_PREFIX="bazel-cache-os${{ runner.os }}-tf${{ matrix.tensorflow }}-py${{ steps.setup_python.outputs.python-version }}-"
-          #CACHES_API="-H 'Accept: application/vnd.github+json' -H 'X-GitHub-Api-Version: 2022-11-28' /repos/${{ github.repository_owner }}/${{ github.repository }}/actions/caches"
-          CACHES_API="/repos/${{ github.repository_owner }}/${{ github.repository }}/actions/caches"
+          #CACHES_API="-H 'Accept: application/vnd.github+json' -H 'X-GitHub-Api-Version: 2022-11-28' /repos/${{ github.repository }}/actions/caches"
+          CACHES_API="/repos/${{ github.repository }}/actions/caches"
           for arg in gh api "${CACHES_API}"?key="$KEY_PREFIX"\&sort=created_at; do echo "- '$arg'"; done
           LATEST_KEY="$(gh api "${CACHES_API}"?key="$KEY_PREFIX"\&sort=created_at | jq -r '.actions_caches[0].key')"
           gh api "${CACHES_API}"?key="$KEY_PREFIX"\&sort=created_at | jq -r '.actions_caches[1:30].key' | while read old_key
