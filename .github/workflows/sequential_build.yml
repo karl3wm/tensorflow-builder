@@ -1,0 +1,14 @@
+name: Build Tensorflow with concurrency limit
+on:
+  workflow_dispatch: # Allows manual triggering from the Actions tab
+  schedule: # Example: Run weekly on Sunday at 03:00 UTC
+    - cron: '0 3 * * 0'
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/**' # Only run if workflow files change
+jobs:
+  sequential_build:
+    uses: karl3wm/tensorflow-builder/.github/workflows/build.yaml@main
+    concurrency: ${{ github.run_id }}
