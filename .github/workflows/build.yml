@@ -251,10 +251,12 @@ jobs:
                                 break
                         fi
                 done
-                find -name requirements_lock_${py_ver_major}_${py_ver_minor}.txt | while read fn
+                find -name requirements_lock_${py_ver_major}_${py_ver_alternate}.txt | while read fn
                 do
-                        cp -v "$fn" "${fn%_*}_${py_ver_alternate}.txt"
+                        cp -v "$fn" "${fn%_*}_${py_ver_major}.txt"
                 done
+            else
+                echo "requirements_lock_${py_ver_major}_${py_ver_minor}.txt exists"
             fi
 
             bazel build $TF_BUILD_FLAGS //tensorflow/tools/pip_package:wheel
