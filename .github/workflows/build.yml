@@ -20,7 +20,7 @@ jobs:
       - name: Fetch recent TensorFlow tags
         id: tensorflow
         run: |
-          LATEST_TENSORFLOW_VERS=1 # don't forget to enable "Free disk space" below if raising this
+          LATEST_TENSORFLOW_VERS=2 # don't forget to enable "Free disk space" below if raising this
           mkdir -p tensorflow.git
           cd tensorflow.git
           git init .
@@ -88,8 +88,8 @@ jobs:
           echo "save key: $NEXT_KEY"
           echo "lastkey=$LATEST_KEY" >> $GITHUB_OUTPUT
           echo "nextkey=$NEXT_KEY" >> $GITHUB_OUTPUT
-      # - name: Free disk space (Ubuntu)
-      #   uses: jlumbroso/free-disk-space@main
+      - name: Free disk space (Ubuntu)
+        uses: jlumbroso/free-disk-space@main
       - name: Add CUDA and ROCm repositories
         run: |
           . /etc/os-release
