@@ -250,20 +250,21 @@ jobs:
             py_ver_minor=${HERMETIC_PYTHON_VERSION#*.}
             if ! [ -e requirements_lock_${py_ver_major}_${py_ver_minor}.txt ]
             then
-                #for offset in 1 -1 2 -2
-                #do
-                #        py_ver_alternate=$((py_ver_minor+offset))
-                #        if [ -e requirements_lock_${py_ver_major}_${py_ver_alternate}.txt ]
-                #        then
-                #                break
-                #        fi
-                #done
-                #find -name requirements_lock_${py_ver_major}_${py_ver_alternate}.txt | while read fn
-                #do
-                #        cp -v "$fn" "${fn%_*}_${py_ver_minor}.txt"
-                #done
-                #sed -i "s/\"${py_ver_major}\.${py_ver_alternate}\"/\"${py_ver_major}.${py_ver_minor}\"/g; s/_lock_${py_ver_major}_${py_ver_alternate}\.txt/_lock_${py_ver_major}_${py_ver_minor}.txt/g" WORKSPACE
-                #grep requirements_lock WORKSPACE
+                for offset in 1 -1 2 -2
+                do
+                        py_ver_alternate=$((py_ver_minor+offset))
+                        if [ -e requirements_lock_${py_ver_major}_${py_ver_alternate}.txt ]
+                        then
+                                break
+                        fi
+                done
+                find -name requirements_lock_${py_ver_major}_${py_ver_alternate}.txt | while read fn
+                do
+                        #cp -v "$fn" "${fn%_*}_${py_ver_minor}.txt"
+                        cp -v ci/official/requirements_updater/requirements.in "${fn%_*}_${py_ver_minor}.txt"
+                done
+                sed -i "s/\"${py_ver_major}\.${py_ver_alternate}\"/\"${py_ver_major}.${py_ver_minor}\"/g; s/_lock_${py_ver_major}_${py_ver_alternate}\.txt/_lock_${py_ver_major}_${py_ver_minor}.txt/g" WORKSPACE
+                grep requirements_lock WORKSPACE
                 bazel run //ci/official/requirements_updater:requirements.update # uses HERMETIC_PYTHON_VERSION
             else
                 echo "requirements_lock_${py_ver_major}_${py_ver_minor}.txt exists"
