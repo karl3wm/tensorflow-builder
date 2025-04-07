@@ -140,7 +140,7 @@ jobs:
       #       echo "Using fallback Bazel version: $DEFAULT_BAZEL_VERSION"
       #       echo "bazel_version=$DEFAULT_BAZEL_VERSION" >> $GITHUB_OUTPUT
       #     fi
-      - name: Restore Bazel Cache
+      - name: Restore Cache
         uses: actions/cache/restore@v4
         with:
           path: |
@@ -290,7 +290,7 @@ jobs:
             find "$path" -name execroot | sudo xargs rm -rf
             find "$path" -name sandbox | sudo xargs rm -rf
           done
-      - name: Always Save Bazel Cache
+      - name: Always Save Cache
         if: always()
         uses: actions/cache/save@v4
         with:
