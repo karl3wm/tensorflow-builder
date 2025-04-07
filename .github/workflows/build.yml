@@ -183,7 +183,7 @@ jobs:
         id: build
         working-directory: ./tensorflow
         #timeout-minutes: 300 # GitHub Actions maximum for free tier is 6 hours/job
-        timeout-minutes: 10 # short timeout for development
+        timeout-minutes: 5 # short timeout for development
         # env:
         #   # Environment variables for TensorFlow's configure script (non-interactive)
         #   PYTHON_BIN_PATH: ${{ steps.generated.outputs.PYTHON_BIN_PATH }}
@@ -287,7 +287,7 @@ jobs:
           do
             if ! [ -d "$path" ]; then continue; fi
             find "$path" -name execroot | sudo xargs rm -rf
-            find "$path" -name sandbox | sudo xags rm -rf
+            find "$path" -name sandbox | sudo xargs rm -rf
           done
       - name: Always Save Bazel Cache
         if: always()
