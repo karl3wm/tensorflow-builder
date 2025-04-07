@@ -83,7 +83,7 @@ jobs:
                 echo "Deleting key $old_key"
                 gh api --method DELETE "${CACHES_API}"?key="$old_key"
           done
-          NEXT_KEY="${KEY_PREFIX}run${{ github.run_id }}.${{ github.run_attempt }}"
+          NEXT_KEY="${KEY_PREFIX}-run${{ github.run_id }}.${{ github.run_attempt }}"
           echo "Load key: $LATEST_KEY"
           echo "save key: $NEXT_KEY"
           echo "lastkey=$LATEST_KEY" >> $GITHUB_OUTPUT
