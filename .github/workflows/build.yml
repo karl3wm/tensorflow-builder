@@ -290,7 +290,7 @@ jobs:
             ~/.cache/bazel
             ~/.cache/bazelisk
             tensorflow/build_output/cache
-          key: bazel-cache-os${{ runner.os }}-tf${{ matrix.tensorflow }}-py${{ steps.setup_python.outputs.python-version }}-bazel${{ steps.bazel_version.outputs.bazel_version }}-run${{ github.run_id }.${{ github.run_attempt }}
+          key: bazel-cache-os${{ runner.os }}-tf${{ matrix.tensorflow }}-py${{ steps.setup_python.outputs.python-version }}-bazel${{ steps.bazel_version.outputs.bazel_version }}-run${{ github.run_id }}.${{ github.run_attempt }}
       - name: Upload TensorFlow Wheel Artifact
         uses: actions/upload-artifact@v4
         with:
