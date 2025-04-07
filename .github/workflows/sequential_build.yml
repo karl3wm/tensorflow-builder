@@ -10,5 +10,5 @@ on:
       - '.github/workflows/**' # Only run if workflow files change
 jobs:
   sequential_build:
-    uses: ./.github/workflows/build.yaml
+    uses: ./.github/workflows/build.yml
     concurrency: ${{ github.run_id }}
