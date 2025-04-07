@@ -20,7 +20,7 @@ jobs:
       - name: Fetch recent TensorFlow tags
         id: tensorflow
         run: |
-          LATEST_TENSORFLOW_VERS=7
+          LATEST_TENSORFLOW_VERS=8
           mkdir -p tensorflow.git
           cd tensorflow.git
           git init .
