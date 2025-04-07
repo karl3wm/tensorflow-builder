@@ -1,8 +1,12 @@
 Tensorflow maintains a docker-oriented build system with dependency versioning and such that I did not know about when I started this.
 Around https://github.com/tensorflow/tensorflow/tree/master/tensorflow/tools/tf_sig_build_dockerfiles#build-tf-nightly-and-run-pip-tests
 
-This script looks promising: https://github.com/tensorflow/tensorflow/blob/master/tensorflow/tools/ci_build/builds/pip_new.sh
+- pip_new.sh at https://github.com/tensorflow/tensorflow/blob/master/tensorflow/tools/ci_build/builds/pip_new.sh
+  looks quite useful but is not upgraded to the new wheel building script
 
 Different platforms are referenced in that ci_build folder.
 
-Building in a cross-version compatible way may be able to use https://github.com/tensorflow/tensorflow/blob/master/ci/official/README.md .
+- official ci scripts at https://github.com/tensorflow/tensorflow/blob/master/ci/official/README.md
+  also look quite useful but have not quite stabilized yet after many versions, documented in the readme in the parent ci folder
+
+Finding the built tensorflow dockers would find dockerfiles that run them and may be the most promising avenue here.
