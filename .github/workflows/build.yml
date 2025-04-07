@@ -57,6 +57,20 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python }}
+      - name: Plan caching
+        id: caching
+        run: |
+          sudo apt-get install --yes --quiet jq coreutils
+          env
+          KEY_PREFIX="bazel-cache-os${{ runner.os }}-tf${{ matrix.tensorflow }}-py${{ steps.setup_python.outputs.python-version }}-"
+          CACHES_API="-H 'Accept: application/vnd.github+json' -H 'X-GitHub-Api-Version: 2022-11-28' /repos/${{ github.repository_owner }}/${{ github.repository }}/actions/caches"
+          LATEST_KEY="$(gh api ${CACHES_API}?key="$KEY_PREFIX"\&sort=created_at | jq -r '.actions_caches[0].key')"
+          gh api ${CACHES_API}?key="$KEY_PREFIX"\&sort=created_at | jq -r '.actions_caches[1:30].key' | while read old_key
+          do
+                gh api --method DELETE ${CACHES_API}?key="$old_key"
+          done
+          echo "lastkey=$LATEST_KEY" >> $GITHUB_OUTPUT
+          echo "nextkey=${KEY_PREFIX}run${{ github.run_id }}.${{ github.run_attempt }}" >> $GITHUB_OUTPUT
       # - name: Free disk space (Ubuntu)
       #   uses: jlumbroso/free-disk-space@main
       - name: Add CUDA repositories
@@ -150,7 +164,7 @@ jobs:
             ~/.cache/bazel
             ~/.cache/bazelisk
             tensorflow/build_output/cache
-          key: bazel-cache-os${{ runner.os }}-tf${{ matrix.tensorflow }}-py${{ steps.setup_python.outputs.python-version }}-bazel${{ steps.bazel_version.outputs.bazel_version }}-run
+          key: ${{ steps.caching.outputs.lastkey }}
       # - name: Dump Configuration and Environment (Troubleshooting)
       #   run: |
       #     echo "--- System Info ---"
@@ -319,7 +333,7 @@ jobs:
             ~/.cache/bazel
             ~/.cache/bazelisk
             tensorflow/build_output/cache
-          key: bazel-cache-os${{ runner.os }}-tf${{ matrix.tensorflow }}-py${{ steps.setup_python.outputs.python-version }}-bazel${{ steps.bazel_version.outputs.bazel_version }}-run${{ github.run_id }}.${{ github.run_attempt }}
+          key: ${{ steps.caching.outputs.nextkey }}
       - name: Upload TensorFlow Wheel Artifact
         uses: actions/upload-artifact@v4
         with:
@@ -351,7 +365,6 @@ jobs:
             Python Version: ${{ steps.setup_python.outputs.python-version }}
             Target Architecture Flags: -march=nehalem -mno-avx -mno-avx2
             Built via GitHub Actions run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-            Bazel Version Used: ${{ needs.build.outputs.bazel_version }} # Needs output from build job
           files: dist/*.whl
           draft: false
           prerelease: false
