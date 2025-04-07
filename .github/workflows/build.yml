@@ -279,8 +279,8 @@ jobs:
           for path in ~/.cache/bazel ~/.cache/bazelisk tensorflow/build_output/cache
           do
             if ! [ -d "$path" ]; then continue; fi
-            find "$path" -name execroot | xargs rm -vrf
-            find "$path" -name sandbox | xags rm -vrf
+            find "$path" -name execroot | sudo xargs rm -rf
+            find "$path" -name sandbox | sudo xags rm -rf
           done
       - name: Always Save Bazel Cache
         if: always()
