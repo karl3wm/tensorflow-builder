@@ -124,7 +124,9 @@ jobs:
           sudo apt-get install --yes --quiet build-essential curl git python3-dev pkg-config coreutils zip unzip xz-utils lld wget sed
           case "${{ matrix.acceleration }}" in
           'gpu')
-            sudo apt-get install --yes --quiet cuda-toolkit-12-3 cudnn-cuda-12
+            # cuda-toolkit-12-3 means cuda 12.3
+            # whereas cudnn9-cuda-12-3 means cudnn 9.3, for cuda 12.x
+            sudo apt-get install --yes --quiet cuda-toolkit-12-3 cudnn9-cuda-12-3
           ;;
           'rocm')
             sudo apt-get install --yes --quiet rocm
