@@ -41,7 +41,7 @@ jobs:
         run: |
           sudo apt-get install --yes --quiet jq coreutils
           #env | sort
-          KEY_PREFIX="bazel-cache-os${{ runner.os }}-tf${{ inputs.tensorflow }}-py${{ steps.setup_python.outputs.python-version }}-${{ inputs.acceleration }}"
+          KEY_PREFIX="bazel-cache-os${{ runner.os }}-tfv${{ inputs.tensorflow }}-py${{ steps.setup_python.outputs.python-version }}-${{ inputs.acceleration }}"
           #CACHES_API="-H 'Accept: application/vnd.github+json' -H 'X-GitHub-Api-Version: 2022-11-28' /repos/${{ github.repository }}/actions/caches"
           CACHES_API="/repos/${{ github.repository }}/actions/caches"
           #for arg in gh api "${CACHES_API}"?key="$KEY_PREFIX"\&sort=size_in_bytes; do echo "- '$arg'"; done
@@ -125,7 +125,7 @@ jobs:
           repository: ${{ inputs.acceleration != 'rocm' && 'tensorflow/tensorflow' || 'ROCm/tensorflow-upstream' }}
           path: 'tensorflow'
           filter: 'tree:0'
-          ref: ${{ inputs.tensorflow }}
+          ref: v${{ inputs.tensorflow }}${{ inputs.acceleration != 'rocm' && '' || '-rocm-enhanced' }}
       # - name: Check out ${{ inputs.tensorflow_latest }}-most recent tensorflow tag
       #   id: checkout
       #   working-directory: tensorflow

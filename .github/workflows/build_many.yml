@@ -16,7 +16,7 @@ jobs:
       python: ${{ steps.python.outputs.versions }}
     steps:
       - name: Install jq
-        run: sudo apt-get install jq coreutils findutils git
+        run: sudo apt-get install jq coreutils findutils git sed
       - name: Fetch recent TensorFlow tags
         id: tensorflow
         run: |
@@ -24,11 +24,14 @@ jobs:
           mkdir -p tensorflow.git
           cd tensorflow.git
           git init .
-          #git remote add origin https://github.com/tensorflow/tensorflow
-          git remote add origin https://github.com/ROCm/tensorflow-upstream # ensure all tags are on rocm
-          git fetch --depth=1 --filter=tree:0 origin 'refs/tags/*:refs/tags/*'
-          #                list tags in creation order                   | take first n of them and shuffle them  | convert the first 4 into a json array                                         | store the result
-          echo "versions=$(git tag --list --sort=-creatordate 'v*.[0-9]' | head -n $LATEST_TENSORFLOW_VERS | shuf | xargs echo -n | jq --raw-input --slurp --compact-output 'split(" ")|.[0:4]')" | tee -a $GITHUB_OUTPUT
+          #REPO=https://github.com/tensorflow/tensorflow
+          #TAGPAT='v*.[0-9]'
+          # ensure tags are found that work with rocm
+          REPO=https://github.com/ROCm/tensorflow-upstream
+          TAGPAT='*-rocm-enhanced'
+          git fetch --depth=1 --filter=tree:0 "$REPO" 'refs/tags/*:refs/tags/*'
+          #                list tags in creation order                  | take first n of them and shuffle them  | extract the version        | convert the first 4 into a json array                                         | store the result
+          echo "versions=$(git tag --list --sort=-creatordate "$TAGPAT" | head -n $LATEST_TENSORFLOW_VERS | shuf | sed 's/v\([.0-9]*\).*/\1/' | xargs echo -n | jq --raw-input --slurp --compact-output 'split(" ")|.[0:4]')" | tee -a $GITHUB_OUTPUT
       - name: Fetch recent Python versions
         id: python
         run: |
