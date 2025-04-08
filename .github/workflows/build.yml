@@ -14,7 +14,7 @@ on:
       run_id:
         type: string
         required: false
-  workflow_run:
+  workflow_call:
     inputs:
       python:
         type: string
