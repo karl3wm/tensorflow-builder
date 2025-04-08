@@ -46,7 +46,7 @@ jobs:
           git remote add origin https://github.com/python/cpython
           git fetch --depth=1 --filter=tree:0 origin 'refs/tags/*:refs/tags/*'
           #                list tags                | sort them numerically and remove duplicates                          | take the first n of them and and shuffle them                         | extract the version                 | convert the first m into a json array                                         | store the result
-          echo "versions=$(git tag --list "$TAGPAT" | sort ---unique --ignore-leading-blanks --numeric --reverse --key 1.4 | tail -n +$((SKIP_PYTHON_VERS+1)) | head -n $LATEST_PYTHON_VERS | shuf | sed 's/v\([0-9]*\.[0-9]*\)\..*/\1/' | xargs echo -n | jq --raw-input --slurp --compact-output 'split(" ")|.[0:'"$TOTAL_PYTHON_VERS"']')" | tee -a $GITHUB_OUTPUT
+          echo "versions=$(git tag --list "$TAGPAT" | sort --unique --ignore-leading-blanks --numeric --reverse --key 1.4 | tail -n +$((SKIP_PYTHON_VERS+1)) | head -n $LATEST_PYTHON_VERS | shuf | sed 's/v\([0-9]*\.[0-9]*\)\..*/\1/' | xargs echo -n | jq --raw-input --slurp --compact-output 'split(" ")|.[0:'"$TOTAL_PYTHON_VERS"']')" | tee -a $GITHUB_OUTPUT
   build_many:
     needs: version_enumeration
     runs-on: ubuntu-latest
