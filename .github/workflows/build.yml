@@ -58,7 +58,8 @@ jobs:
       group: ${{ matrix.tensorflow }}-${{ matrix.os }}-${{ matrix.acceleration }}-${{ matrix.python }}
       cancel-in-progress: true
     steps:
-      - name: Disable man-db/auto-update and remove some packages
+      - name: Disable man-db/auto-update and remove some packages (Ubuntu)
+        if: ${{ matrix.os == 'linux' }}
         run: |
           echo "set man-db/auto-update false" | sudo debconf-communicate
           sudo dpkg-reconfigure man-db
