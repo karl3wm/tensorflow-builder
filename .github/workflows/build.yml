@@ -9,7 +9,18 @@ on:
         type: string
         required: true
       acceleration:
-        type: string
+        type: choice
+        options:
+          - cpu
+          - gpu
+          - rocm
+        required: true
+      os:
+        type: choice
+        options:
+          - linux
+          - macos
+          - windows
         required: true
       run_id:
         type: string
@@ -25,6 +36,9 @@ on:
       acceleration:
         type: string
         required: true
+      os:
+        type: string
+        required: true
       run_id:
         type: string
         required: false
@@ -36,8 +50,9 @@ jobs:
         python: ["${{ github.event.client_payload.python || inputs.python }}"]
         tensorflow: ["${{ github.event.client_payload.tensorflow || inputs.tensorflow }}"]
         acceleration: ["${{ github.event.client_payload.acceleration || inputs.acceleration }}"]
+        os: ["${{ github.event.client_payload.os || inputs.os }}"]
         run_id: ["${{ github.event.client_payload.run_id || inputs.run_id || github.run_id }}"]
-    runs-on: ubuntu-22.04
+    runs-on: ${{ matrix.os == 'linux' && 'ubuntu-22.04' || 'macosx-latest' }}
     name: "Tensorflow ${{ matrix.tensorflow }} ${{ matrix.acceleration }} Python ${{ matrix.python }}"
     concurrency:
       group: ${{ matrix.tensorflow }}-${{ matrix.python }}-${{ matrix.acceleration }}
@@ -58,7 +73,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          sudo apt-get install --yes --quiet jq coreutils
+          sudo apt-get install --yes --quiet jq coreutils || brew install jq
           #env | sort
           KEY_PREFIX="bazel-cache-os${{ runner.os }}-tfv${{ matrix.tensorflow }}-py${{ steps.setup_python.outputs.python-version }}-${{ matrix.acceleration }}"
           #CACHES_API="-H 'Accept: application/vnd.github+json' -H 'X-GitHub-Api-Version: 2022-11-28' /repos/${{ github.repository }}/actions/caches"
@@ -76,10 +91,12 @@ jobs:
           echo "lastkey=$LATEST_KEY" >> $GITHUB_OUTPUT
           echo "nextkey=$NEXT_KEY" >> $GITHUB_OUTPUT
       - name: Free disk space (Ubuntu)
+        if: ${{ matrix.os == 'linux' }}
         uses: jlumbroso/free-disk-space@main
       #   with:
       #     tool-cache: true
-      - name: Add CUDA and ROCm repositories
+      - name: Add CUDA and ROCm repositories (Ubuntu)
+        if: ${{ matrix.os == 'linux' }}
         run: |
           . /etc/os-release
           wget --progress=dot:mega https://developer.download.nvidia.com/compute/cuda/repos/ubuntu${VERSION_ID/.}/x86_64/cuda-keyring_1.1-1_all.deb
@@ -89,14 +106,9 @@ jobs:
           wget https://repo.radeon.com/rocm/rocm.gpg.key -O - | gpg --dearmor | sudo tee /etc/apt/keyrings/rocm.gpg
           echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/rocm.gpg] https://repo.radeon.com/rocm/apt/6.3.3 ${UBUNTU_CODENAME} main" | sudo tee -a /etc/apt/sources.list.d/rocm.list
           echo -e 'Package: *\nPin: release o=repo.radeon.com\nPin-Priority: 600' | sudo tee /etc/apt/preferences.d/rocm-pin-600
-      - name: Install LLVM
+      - name: Install LLVM (Ubuntu)
+        if: ${{ matrix.os == 'linux' }}
         run: |
-          #. /etc/os-release
-          #echo "Installing clang"
-          #wget --progress=dot:mega https://github.com/llvm/llvm-project/releases/download/llvmorg-17.0.2/clang+llvm-17.0.2-x86_64-linux-gnu-ubuntu-${VERSION_ID}.tar.xz -O - | xzcat | sudo tar -xvf - --directory /usr --strip-components=1
-          #echo "Clang installation complete."
-          #hash -r
-          #type -p clang
           echo "Installing LLVM."
           wget https://apt.llvm.org/llvm.sh
           chmod +x llvm.sh
@@ -110,26 +122,43 @@ jobs:
         run: |
           echo "Installing system packages."
           #sudo apt-get dist-upgrade --yes --quiet # slows down build
-          sudo apt-get install --yes --quiet build-essential curl git python3-dev pkg-config coreutils zip unzip xz-utils lld wget sed
-          case "${{ matrix.acceleration }}" in
-          'gpu')
-            sudo apt-get install --yes --quiet libcudnn9-cuda-12=9.3.* libcudnn9-dev-cuda-12=9.3.* cuda-toolkit-12-3
+          case "${{ matrix.os }}" in
+          'linux')
+            sudo apt-get install --yes --quiet build-essential curl git python3-dev pkg-config coreutils zip unzip xz-utils lld wget sed
+            case "${{ matrix.acceleration }}" in
+            'gpu')
+              sudo apt-get install --yes --quiet libcudnn9-cuda-12=9.3.* libcudnn9-dev-cuda-12=9.3.* cuda-toolkit-12-3
+            ;;
+            'rocm')
+              sudo apt-get install --yes --quiet rocm
+              echo /opt/rocm/lib | sudo tee -a /etc/ld.so.conf.d/rocm.conf
+              echo /opt/rocm/lib | sudo tee -a /etc/ld.so.conf.d/rocm.conf
+              sudo ldconfig
+              sudo update-alternatives --list rocm
+            ;;
+            esac
           ;;
-          'rocm')
-            sudo apt-get install --yes --quiet rocm
-            echo /opt/rocm/lib | sudo tee -a /etc/ld.so.conf.d/rocm.conf
-            echo /opt/rocm/lib | sudo tee -a /etc/ld.so.conf.d/rocm.conf
-            sudo ldconfig
-            sudo update-alternatives --list rocm
+          'macos')
+            brew install python
           ;;
           esac
+          python3 -m pip install --upgrade --user pip numpy wheel packaging requests opt_einsum
+          python3 -m pip install --upgrade --user keras_preprocessing --no-deps
           echo "Done installing system packages."
-      - name: Install Bazel
+      - name: Install Bazel (Ubuntu)
+        if: ${{ matrix.os == 'linux' }}
         run: |
           echo "Attempting to install latest Bazelisk"
-          wget --progress=dot:mega https://github.com/bazelbuild/bazelisk/releases/latest/download/bazelisk-linux-amd64
-          chmod +x bazelisk-linux-amd64
-          sudo mv bazelisk-linux-amd64 /usr/local/bin/bazel
+          case "${{ matrix.os }}" in
+          'linux')
+            wget --progress=dot:mega https://github.com/bazelbuild/bazelisk/releases/latest/download/bazelisk-linux-amd64
+            chmod +x bazelisk-linux-amd64
+            sudo mv bazelisk-linux-amd64 /usr/local/bin/bazel
+          ;;
+          'macos')
+            brew install bazelisk
+          ;;
+          esac
           echo "Bazel installation complete."
           hash -r
           type -p bazel
@@ -145,40 +174,6 @@ jobs:
           path: 'tensorflow'
           filter: 'tree:0'
           ref: v${{ matrix.tensorflow }}${{ matrix.acceleration == 'rocm' && '-rocm-enhanced' || '' }}
-      # - name: Check out ${{ matrix.tensorflow_latest }}-most recent tensorflow tag
-      #   id: checkout
-      #   working-directory: tensorflow
-      #   run: |
-      #     TF_REF="$(git tag --list --sort=-creatordate 'v*.[0-9]' | head -n ${{ matrix.tensorflow_latest }} | tail -n 1)"
-      #     git checkout "$TF_REF"
-      #     echo "TF_VERSION=${TF_REF#v}" >> $GITHUB_OUTPUT
-      # # These outputs are used later in the run
-      # - name: Generate values available at runtime
-      #   id: generated
-      #   working-directory: ./tensorflow
-      #   run: |
-      #     echo "PYTHON_BIN_PATH=$(which python)" >> $GITHUB_OUTPUT
-      #     echo "PYTHON_LIB_PATH=$(python -c 'import site; print(site.getsitepackages()[0])')" >> $GITHUB_OUTPUT
-      #     echo "TF_PYTHON_VERSION=$(python -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')" >> $GITHUB_OUTPUT
-      #     TF_REF="$(git tag --list --sort=-creatordate 'v*.[0-9]' | head -n ${{ matrix.tensorflow_latest }} | tail -n 1)"
-      #     git checkout "$TF_REF"
-      #     echo "TF_VERSION=${TF_REF#v}" >> $GITHUB_OUTPUT
-      # - name: Determine Bazel Version
-      #   id: bazel_version
-      #   working-directory: ./tensorflow
-      #   run: |
-      #     if [[ -f ".bazelversion" ]]; then
-      #       BAZEL_VERSION_FROM_FILE=$(cat .bazelversion | head -n 1)
-      #       echo "Found .bazelversion, using Bazel version: $BAZEL_VERSION_FROM_FILE"
-      #       echo "bazel_version=$BAZEL_VERSION_FROM_FILE" >> $GITHUB_OUTPUT
-      #     else
-      #       # --- Fallback Bazel Version ---
-      #       # Choose a version known to work with recent TF if .bazelversion is missing
-      #       DEFAULT_BAZEL_VERSION="6.1.0"
-      #       echo "WARN: .bazelversion not found in TF source for tag v${{ steps.checkout.outputs.TF_VERSION }}."
-      #       echo "Using fallback Bazel version: $DEFAULT_BAZEL_VERSION"
-      #       echo "bazel_version=$DEFAULT_BAZEL_VERSION" >> $GITHUB_OUTPUT
-      #     fi
       - name: Restore Cache
         uses: actions/cache/restore@v4
         with:
