@@ -40,6 +40,8 @@ jobs:
         run_id: ["${{ github.event.client_payload.run_id || inputs.run_id || github.run_id }}"]
     runs-on: ubuntu-22.04
     name: "Tensorflow ${{ matrix.tensorflow }} ${{ matrix.acceleration }} Python ${{ matrix.python }}"
+    concurrency:
+      group: ${{ matrix.tensorflow }}-${{ matrix.python }}-${{ matrix.acceleration }}
     steps:
       - name: Disable man-db/auto-update and remove some packages
         run: |
