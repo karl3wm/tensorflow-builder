@@ -106,18 +106,6 @@ jobs:
           wget https://repo.radeon.com/rocm/rocm.gpg.key -O - | gpg --dearmor | sudo tee /etc/apt/keyrings/rocm.gpg
           echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/rocm.gpg] https://repo.radeon.com/rocm/apt/6.3.3 ${UBUNTU_CODENAME} main" | sudo tee -a /etc/apt/sources.list.d/rocm.list
           echo -e 'Package: *\nPin: release o=repo.radeon.com\nPin-Priority: 600' | sudo tee /etc/apt/preferences.d/rocm-pin-600
-      - name: Install LLVM (Ubuntu)
-        if: ${{ matrix.os == 'linux' }}
-        run: |
-          echo "Installing LLVM."
-          wget https://apt.llvm.org/llvm.sh
-          chmod +x llvm.sh
-          sudo ./llvm.sh 17
-          sudo update-alternatives --install /usr/bin/clang clang /usr/bin/clang-17 0
-          rm llvm.sh
-          echo "LLVM installation complete."
-          hash -r
-          readlink -f $(type -p clang)
       - name: Install system packages
         run: |
           echo "Installing system packages."
@@ -174,6 +162,21 @@ jobs:
           path: 'tensorflow'
           filter: 'tree:0'
           ref: v${{ matrix.tensorflow }}${{ matrix.acceleration == 'rocm' && '-rocm-enhanced' || '' }}
+      - name: Install LLVM (Ubuntu)
+        if: ${{ matrix.os == 'linux' }}
+        working-directory: ./tensorflow
+        run: |
+          # note that prior to tensorflow 2.13 or so clang was not used
+          CLANG_VER="$(sed -ne '/\/llvm-[0-9]*\/bin/ { s/.*\/llvm-\([0-9]*\)\/bin.*/\1/p; q; }' < configure.py)"
+          echo "Installing LLVM."
+          wget https://apt.llvm.org/llvm.sh
+          chmod +x llvm.sh
+          sudo ./llvm.sh "$CLANG_VER"
+          sudo update-alternatives --install /usr/bin/clang clang /usr/bin/clang-"$CLANG_VER" 0
+          rm llvm.sh
+          echo "LLVM installation complete."
+          hash -r
+          readlink -f $(type -p clang)
       - name: Restore Cache
         uses: actions/cache/restore@v4
         with:
