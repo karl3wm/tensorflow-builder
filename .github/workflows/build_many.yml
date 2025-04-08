@@ -56,5 +56,5 @@ jobs:
       - name: Dispatch repository events
         uses: peter-evans/repository-dispatch@v3
         with:
-          event-type: build
+          event-type: "TensorFlow ${{ matrix.tensorflow }} ${{ matrix.acceleration }} Python ${{ matrix.python }}"
           client-payload: '{"python": "${{ matrix.python }}", "tensorflow": "${{ matrix.tensorflow }}", "acceleration": "${{ matrix.acceleration }}", "run_id": "${{ github.run_id }}.${{ github.run_attempt }}" }'

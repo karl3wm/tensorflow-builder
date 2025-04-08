@@ -29,7 +29,6 @@ on:
         type: string
         required: false
   repository_dispatch:
-    types: [build]
 jobs:
   build:
     strategy:
