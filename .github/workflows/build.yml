@@ -39,12 +39,7 @@ jobs:
         acceleration: ["${{ github.event.client_payload.acceleration || inputs.acceleration }}"]
         run_id: ["${{ github.event.client_payload.run_id || inputs.run_id || github.run_id }}"]
     runs-on: ubuntu-22.04
-    # cross-matrix concurrency isn't functional, half the jobs are canceled.
-    # but cross-workflow concurrency works and also addresses shared space usage.
-    # see https://github.com/orgs/community/discussions/63579#discussioncomment-6905355
-    # concurrency:
-    #   group: ${{ matrix.run_id }}-${{ matrix.tensorflow }}
-    #   cancel-in-progress: false
+    name: "Tensorflow ${{ matrix.tensorflow }} ${{ matrix.acceleration }} Python ${{ matrix.python }}"
     steps:
       - name: Disable man-db/auto-update and remove some packages
         run: |
