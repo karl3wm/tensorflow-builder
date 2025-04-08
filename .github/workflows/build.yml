@@ -122,10 +122,10 @@ jobs:
       - name: Checkout TensorFlow ${{ inputs.tensorflow }} Source Code
         uses: actions/checkout@v4
         with:
-          repository: ${{ inputs.acceleration != 'rocm' && 'tensorflow/tensorflow' || 'ROCm/tensorflow-upstream' }}
+          repository: ${{ inputs.acceleration == 'rocm' && 'ROCm/tensorflow-upstream' || 'tensorflow/tensorflow' }}
           path: 'tensorflow'
           filter: 'tree:0'
-          ref: v${{ inputs.tensorflow }}${{ inputs.acceleration != 'rocm' && '' || '-rocm-enhanced' }}
+          ref: v${{ inputs.tensorflow }}${{ inputs.acceleration == 'rocm' && '-rocm-enhanced' || '' }}
       # - name: Check out ${{ inputs.tensorflow_latest }}-most recent tensorflow tag
       #   id: checkout
       #   working-directory: tensorflow
