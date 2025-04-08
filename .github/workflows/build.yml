@@ -52,7 +52,7 @@ jobs:
         acceleration: ["${{ github.event.client_payload.acceleration || inputs.acceleration }}"]
         os: ["${{ github.event.client_payload.os || inputs.os }}"]
         run_id: ["${{ github.event.client_payload.run_id || inputs.run_id || github.run_id }}"]
-    runs-on: ${{ matrix.os == 'linux' && 'ubuntu-22.04' || 'macos-latest' }}
+    runs-on: ${{ matrix.os == 'linux' && 'ubuntu-22.04' || 'macos-latest-large' }} # macos-latest-large is hopefully x86_64 https://github.com/actions/runner-images?tab=readme-ov-file#available-images
     name: "Tensorflow ${{ matrix.tensorflow }} ${{ matrix.os }} ${{ matrix.acceleration }} Python ${{ matrix.python }}"
     concurrency:
       group: ${{ matrix.tensorflow }}-${{ matrix.os }}-${{ matrix.acceleration }}-${{ matrix.python }}
