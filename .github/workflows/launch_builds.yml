@@ -42,10 +42,11 @@ jobs:
           mkdir -p python.git
           cd python.git
           git init .
+          TAGPAT='v*.[0-9]'
           git remote add origin https://github.com/python/cpython
-          git fetch --depth=1 --filter=tree:0 origin 'refs/heads/3.*:refs/heads/3.*'
-          #                list branches in numeric order                                          | take the first n of them and and shuffle them                         | convert the first 2 into a json array                                         | store the result
-          echo "versions=$(git branch | sort --ignore-leading-blanks --numeric --reverse --key 1.3 | tail -n +$((SKIP_PYTHON_VERS+1)) | head -n $LATEST_PYTHON_VERS | shuf | xargs echo -n | jq --raw-input --slurp --compact-output 'split(" ")|.[0:'"$TOTAL_PYTHON_VERS"']')" | tee -a $GITHUB_OUTPUT
+          git fetch --depth=1 --filter=tree:0 origin 'refs/tags/*:refs/tags/*'
+          #                list tags                 | sort them numerically                                      | take the first n of them and and shuffle them                         | extract the version                 | convert the first m into a json array                                         | store the result
+          echo "versions=$(git tags --list "$TAGPAT" | sort --ignore-leading-blanks --numeric --reverse --key 1.4 | tail -n +$((SKIP_PYTHON_VERS+1)) | head -n $LATEST_PYTHON_VERS | shuf | sed 's/v\([0-9]*\.[0-9]*\)\..*/\1/' | xargs echo -n | jq --raw-input --slurp --compact-output 'split(" ")|.[0:'"$TOTAL_PYTHON_VERS"']')" | tee -a $GITHUB_OUTPUT
   build_many:
     needs: version_enumeration
     runs-on: ubuntu-latest
