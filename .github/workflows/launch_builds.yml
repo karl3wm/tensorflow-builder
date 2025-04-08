@@ -20,7 +20,7 @@ jobs:
       - name: Fetch recent TensorFlow tags
         id: tensorflow
         run: |
-          LATEST_TENSORFLOW_VERS=12
+          LATEST_TENSORFLOW_VERS=1
           TOTAL_TENSORFLOW_VERS=16
           mkdir -p tensorflow.git
           cd tensorflow.git
@@ -36,8 +36,8 @@ jobs:
       - name: Fetch recent Python versions
         id: python
         run: |
-          SKIP_PYTHON_VERS=0
-          LATEST_PYTHON_VERS=6
+          SKIP_PYTHON_VERS=1
+          LATEST_PYTHON_VERS=1
           TOTAL_PYTHON_VERS=16
           mkdir -p python.git
           cd python.git
@@ -54,7 +54,7 @@ jobs:
         python: ${{ fromJSON(needs.version_enumeration.outputs.python) }}
         tensorflow: ${{ fromJSON(needs.version_enumeration.outputs.tensorflow) }}
         acceleration: ['cpu'] #, 'gpu', 'rocm']
-        os: ['linux'] #, 'macos', 'windows']
+        os: ['linux', 'macos'] #, 'windows']
     steps:
       - name: Dispatch repository events
         uses: peter-evans/repository-dispatch@v3
