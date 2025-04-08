@@ -56,10 +56,10 @@ jobs:
           echo "save key: $NEXT_KEY"
           echo "lastkey=$LATEST_KEY" >> $GITHUB_OUTPUT
           echo "nextkey=$NEXT_KEY" >> $GITHUB_OUTPUT
-      - name: Free disk space (Ubuntu)
-        uses: jlumbroso/free-disk-space@main
-        with:
-          tool-cache: true
+      # - name: Free disk space (Ubuntu)
+      #   uses: jlumbroso/free-disk-space@main
+      #   with:
+      #     tool-cache: true
       - name: Add CUDA and ROCm repositories
         run: |
           . /etc/os-release
