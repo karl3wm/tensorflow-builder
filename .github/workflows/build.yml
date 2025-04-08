@@ -285,7 +285,6 @@ jobs:
             case "${{ matrix.acceleration }}" in
             'gpu')
               TF_NEED_CUDA=1
-              TF_BUILD_FLAGS="$TF_BUILD_FLAGS --config=cuda --config=cuda_wheel"
             ;;
             'rocm')
               TF_NEED_ROCM=1
@@ -299,12 +298,17 @@ jobs:
             if [ -e tensorflow/tools/pip_package/build_pip_package.sh ]
             then
                 # < 2.17
-                # The documentation for building tensorflow 2.16 is in commit 57a0d991e684cd01cec3ac152112a7df3a18a26a of the tensorflow docs repository
                 bazel build $TF_BUILD_FLAGS //tensorflow/tools/pip_package:build_pip_package
                 PIP_WHL_DIR=/tmp/tensorflow_pkg
                 ./bazel-bin/tensorflow/tools/pip_package/build_pip_package "$PIP_WHL_DIR"
             else
                 # >= 2.17
+
+                case "${{ matrix.acceleration }}" in
+                'gpu')
+                  TF_BUILD_FLAGS="$TF_BUILD_FLAGS --config=cuda --config=cuda_wheel"
+                ;;
+                esac
 
                 # in this if block i was trying to figure out how to build tensorflow for a new python version.
                 # it would make sense to actually figure that out, before implementing it
