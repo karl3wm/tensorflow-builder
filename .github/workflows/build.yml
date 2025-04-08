@@ -276,6 +276,7 @@ jobs:
             export TF_ENABLE_XLA=1 TF_NEED_CUDA=0 TF_NEED_ROCM=0 TF_CONFIGURE_IOS=0 TF_SET_ANDROID_WORKSPACE=0
             export CC_OPT_FLAGS='-march=nehalem -mno-avx -mno-avx2 -O3'
             export TF_BUILD_FLAGS="--config=monolithic --config=opt --verbose_failures" # --toolchain_resolution_debug=@bazel_tools//tools/cpp:toolchain_type --subcommands # Build the pip package with enhanced verbosity
+            export TF_PYTHON_VERSION=${{ matrix.python }}
             export HERMETIC_PYTHON_VERSION=${{ matrix.python }}
             export TF_PROJECT_NAME=tensorflow_noavx_${{ matrix.acceleration }}
             export PROJECT_NAME="$TF_PROJECT_NAME"
@@ -308,13 +309,39 @@ jobs:
                 ;;
                 esac
 
-                # in this if block i was trying to figure out how to build tensorflow for a new python version.
-                # it would make sense to actually figure that out, before implementing it
-                # standard build after the if block
                 py_ver_major=${HERMETIC_PYTHON_VERSION%.*}
                 py_ver_minor=${HERMETIC_PYTHON_VERSION#*.}
                 if ! [ -e requirements_lock_${py_ver_major}_${py_ver_minor}.txt ]
                 then
+                # in ci/official/requirements_updater/ which is the tree the document discusses::
+                    # ### How to add a new Python version
+                    #
+                    # 1) In the `WORKSPACE` file add a new version to `python_versions` argument of
+                    # the `python_register_multi_toolchains` function.
+                    #
+                    # 2) In `BUILD.bazel` file add a load statement for the new version, e.g.
+                    #
+                    # ```
+                    # load("@python//3.11:defs.bzl",
+                    #      compile_pip_requirements_3_11 = "compile_pip_requirements")
+                    # ```
+                    #
+                    # Add a new entry for the loaded `compile_pip_requirements`, e.g.
+                    #
+                    # ```
+                    # compile_pip_requirements_3_11(
+                    #     name = "requirements_3_11",
+                    #     extra_args = ["--allow-unsafe"],
+                    #     requirements_in = "requirements.in",
+                    #     requirements_txt = "requirements_lock_3_11.txt",
+                    # )
+                    # ```
+                    #
+                    # 3) Add the version to `SUPPORTED_VERSIONS` in `updater.sh`, after that run the
+                    #  requirements updater tool.
+                    #
+                    # 4) As a result, a new `requirements_lock_3_11.txt` file should appear under the
+                    # root of tensorflow directory.
                     for offset in 1 -1 2 -2
                     do
                             py_ver_alternate=$((py_ver_minor+offset))
@@ -329,7 +356,6 @@ jobs:
                             # filter out tensorflow-built dependencies which won't be available
                             REQUIREMENTSFN="${fn%_*}_${py_ver_minor}.txt"
                             grep --invert-match '^tensorflow' ci/official/requirements_updater/requirements.in | tee "$REQUIREMENTSFN"
-                            python${HERMETIC_PYTHON_VERSION} -m pip install -r "$REQUIREMENTSFN"
                     done
                     sed -i "s/\"${py_ver_major}\.${py_ver_alternate}\"/\"${py_ver_major}.${py_ver_minor}\"/g; s/_lock_${py_ver_major}_${py_ver_alternate}\.txt/_lock_${py_ver_major}_${py_ver_minor}.txt/g" WORKSPACE
                     grep requirements_lock WORKSPACE
