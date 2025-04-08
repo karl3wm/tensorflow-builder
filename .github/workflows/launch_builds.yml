@@ -35,7 +35,7 @@ jobs:
           echo "versions=$(git tag --list --sort=-creatordate "$TAGPAT" | head -n $LATEST_TENSORFLOW_VERS | shuf | sed 's/v\([.0-9]*\).*/\1/' | xargs echo -n | jq --raw-input --slurp --compact-output 'split(" ")|.[0:'"$TOTAL_TENSORFLOW_VERS"']')" | tee -a $GITHUB_OUTPUT
       - name: Fetch recent Python versions
         id: python
-        shell: bash -vx --noprofile --norc -eo pipefail {0}
+        shell: 'bash -vx --noprofile --norc -eo pipefail {0}'
         run: |
           SKIP_PYTHON_VERS=1
           LATEST_PYTHON_VERS=5
