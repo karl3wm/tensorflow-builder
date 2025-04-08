@@ -20,24 +20,24 @@ jobs:
       - name: Fetch recent TensorFlow tags
         id: tensorflow
         run: |
-          LATEST_TENSORFLOW_VERS=2
+          LATEST_TENSORFLOW_VERS=12
           TOTAL_TENSORFLOW_VERS=16
           mkdir -p tensorflow.git
           cd tensorflow.git
           git init .
-          #REPO=https://github.com/tensorflow/tensorflow
-          #TAGPAT='v*.[0-9]'
+          REPO=https://github.com/tensorflow/tensorflow
+          TAGPAT='v*.[0-9]'
           # ensure tags are found that work with rocm
-          REPO=https://github.com/ROCm/tensorflow-upstream
-          TAGPAT='v*-rocm-enhanced'
+          #REPO=https://github.com/ROCm/tensorflow-upstream
+          #TAGPAT='v*-rocm-enhanced'
           git fetch --depth=1 --filter=tree:0 "$REPO" 'refs/tags/*:refs/tags/*'
           #                list tags in creation order                  | take first n of them and shuffle them  | extract the version        | convert the first m into a json array                                         | store the result
           echo "versions=$(git tag --list --sort=-creatordate "$TAGPAT" | head -n $LATEST_TENSORFLOW_VERS | shuf | sed 's/v\([.0-9]*\).*/\1/' | xargs echo -n | jq --raw-input --slurp --compact-output 'split(" ")|.[0:'"$TOTAL_TENSORFLOW_VERS"']')" | tee -a $GITHUB_OUTPUT
       - name: Fetch recent Python versions
         id: python
         run: |
-          SKIP_PYTHON_VERS=1
-          LATEST_PYTHON_VERS=5
+          SKIP_PYTHON_VERS=0
+          LATEST_PYTHON_VERS=6
           TOTAL_PYTHON_VERS=16
           mkdir -p python.git
           cd python.git
