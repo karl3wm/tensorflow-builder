@@ -168,7 +168,7 @@ jobs:
         run: |
           # note that prior to tensorflow 2.13 or so clang was not used
           # pick the second-oldest supported version
-          CLANG_VER="$(sed -ne '/\/llvm-[0-9]*\/bin/ { s/.*\/llvm-\([0-9]*\)\/bin.*/\1/p; }' < configure.py | sort -n | head -n 2 | tail -n 1)"
+          CLANG_VER="$(sed -ne '/\/llvm-[0-9]*\/bin/ { s/.*\/llvm-\([0-9]*\)\/bin.*/\1/p; }' < configure.py | sort -n | tee /dev/stderr | head -n 2 | tail -n 1)"
           echo "Installing LLVM."
           wget https://apt.llvm.org/llvm.sh
           chmod +x llvm.sh
