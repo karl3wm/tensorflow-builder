@@ -1,6 +1,6 @@
 name: Build
 on:
-  workflow_call:
+  workflow_dispatch:
     inputs:
       python:
         type: string
@@ -14,14 +14,36 @@ on:
       run_id:
         type: string
         required: false
+  workflow_run:
+    inputs:
+      python:
+        type: string
+        required: true
+      tensorflow:
+        type: string
+        required: true
+      acceleration:
+        type: string
+        required: true
+      run_id:
+        type: string
+        required: false
+  repository_dispatch:
+    types: [build]
 jobs:
   build:
+    strategy:
+      matrix:
+        python: ["${{ github.event.client_payload.python || inputs.python }}"]
+        tensorflow: ["${{ github.event.client_payload.tensorflow || inputs.tensorflow }}"]
+        acceleration: ["${{ github.event.client_payload.acceleration || inputs.acceleration }}"]
+        run_id: ["${{ github.event.client_payload.run_id || inputs.run_id || github.run_id }}"]
     runs-on: ubuntu-22.04
     # cross-matrix concurrency isn't functional, half the jobs are canceled.
     # but cross-workflow concurrency works and also addresses shared space usage.
     # see https://github.com/orgs/community/discussions/63579#discussioncomment-6905355
     # concurrency:
-    #   group: ${{ inputs.run_id }}-${{ inputs.tensorflow }}
+    #   group: ${{ matrix.run_id }}-${{ matrix.tensorflow }}
     #   cancel-in-progress: false
     steps:
       - name: Disable man-db/auto-update and remove some packages
@@ -29,11 +51,11 @@ jobs:
           echo "set man-db/auto-update false" | sudo debconf-communicate
           sudo dpkg-reconfigure man-db
           sudo apt-get remove --yes --quiet firefox clang\*
-      - name: Set up Python ${{ inputs.python }}
+      - name: Set up Python ${{ matrix.python }}
         id: setup_python
         uses: actions/setup-python@v4
         with:
-          python-version: ${{ inputs.python }}
+          python-version: ${{ matrix.python }}
       - name: Plan caching
         id: caching
         env:
@@ -41,7 +63,7 @@ jobs:
         run: |
           sudo apt-get install --yes --quiet jq coreutils
           #env | sort
-          KEY_PREFIX="bazel-cache-os${{ runner.os }}-tfv${{ inputs.tensorflow }}-py${{ steps.setup_python.outputs.python-version }}-${{ inputs.acceleration }}"
+          KEY_PREFIX="bazel-cache-os${{ runner.os }}-tfv${{ matrix.tensorflow }}-py${{ steps.setup_python.outputs.python-version }}-${{ matrix.acceleration }}"
           #CACHES_API="-H 'Accept: application/vnd.github+json' -H 'X-GitHub-Api-Version: 2022-11-28' /repos/${{ github.repository }}/actions/caches"
           CACHES_API="/repos/${{ github.repository }}/actions/caches"
           #for arg in gh api "${CACHES_API}"?key="$KEY_PREFIX"\&sort=size_in_bytes; do echo "- '$arg'"; done
@@ -92,7 +114,7 @@ jobs:
           echo "Installing system packages."
           #sudo apt-get dist-upgrade --yes --quiet # slows down build
           sudo apt-get install --yes --quiet build-essential curl git python3-dev pkg-config coreutils zip unzip xz-utils lld wget sed
-          case "${{ inputs.acceleration }}" in
+          case "${{ matrix.acceleration }}" in
           'gpu')
             sudo apt-get install --yes --quiet libcudnn9-cuda-12=9.3.* libcudnn9-dev-cuda-12=9.3.* cuda-toolkit-12-3
           ;;
@@ -114,23 +136,23 @@ jobs:
           echo "Bazel installation complete."
           hash -r
           type -p bazel
-      #- name: Checkout TensorFlow ${{ inputs.tensorflow }}
+      #- name: Checkout TensorFlow ${{ matrix.tensorflow }}
       #  run: |
       #    git clone --filter=tree:0 --no-checkout https://github.com/tensorflow/tensorflow
       #    cd tensorflow
-      #    git checkout ${{ inputs.tensorflow }} -b build
-      - name: Checkout TensorFlow ${{ inputs.tensorflow }} Source Code
+      #    git checkout ${{ matrix.tensorflow }} -b build
+      - name: Checkout TensorFlow ${{ matrix.tensorflow }} Source Code
         uses: actions/checkout@v4
         with:
-          repository: ${{ inputs.acceleration == 'rocm' && 'ROCm/tensorflow-upstream' || 'tensorflow/tensorflow' }}
+          repository: ${{ matrix.acceleration == 'rocm' && 'ROCm/tensorflow-upstream' || 'tensorflow/tensorflow' }}
           path: 'tensorflow'
           filter: 'tree:0'
-          ref: v${{ inputs.tensorflow }}${{ inputs.acceleration == 'rocm' && '-rocm-enhanced' || '' }}
-      # - name: Check out ${{ inputs.tensorflow_latest }}-most recent tensorflow tag
+          ref: v${{ matrix.tensorflow }}${{ matrix.acceleration == 'rocm' && '-rocm-enhanced' || '' }}
+      # - name: Check out ${{ matrix.tensorflow_latest }}-most recent tensorflow tag
       #   id: checkout
       #   working-directory: tensorflow
       #   run: |
-      #     TF_REF="$(git tag --list --sort=-creatordate 'v*.[0-9]' | head -n ${{ inputs.tensorflow_latest }} | tail -n 1)"
+      #     TF_REF="$(git tag --list --sort=-creatordate 'v*.[0-9]' | head -n ${{ matrix.tensorflow_latest }} | tail -n 1)"
       #     git checkout "$TF_REF"
       #     echo "TF_VERSION=${TF_REF#v}" >> $GITHUB_OUTPUT
       # # These outputs are used later in the run
@@ -141,7 +163,7 @@ jobs:
       #     echo "PYTHON_BIN_PATH=$(which python)" >> $GITHUB_OUTPUT
       #     echo "PYTHON_LIB_PATH=$(python -c 'import site; print(site.getsitepackages()[0])')" >> $GITHUB_OUTPUT
       #     echo "TF_PYTHON_VERSION=$(python -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')" >> $GITHUB_OUTPUT
-      #     TF_REF="$(git tag --list --sort=-creatordate 'v*.[0-9]' | head -n ${{ inputs.tensorflow_latest }} | tail -n 1)"
+      #     TF_REF="$(git tag --list --sort=-creatordate 'v*.[0-9]' | head -n ${{ matrix.tensorflow_latest }} | tail -n 1)"
       #     git checkout "$TF_REF"
       #     echo "TF_VERSION=${TF_REF#v}" >> $GITHUB_OUTPUT
       # - name: Determine Bazel Version
@@ -259,11 +281,11 @@ jobs:
             export TF_ENABLE_XLA=1 TF_NEED_CUDA=0 TF_NEED_ROCM=0 TF_CONFIGURE_IOS=0 TF_SET_ANDROID_WORKSPACE=0
             export CC_OPT_FLAGS='-march=nehalem -mno-avx -mno-avx2 -O3'
             export TF_BUILD_FLAGS="--config=monolithic --config=opt --verbose_failures" # --toolchain_resolution_debug=@bazel_tools//tools/cpp:toolchain_type --subcommands # Build the pip package with enhanced verbosity
-            export HERMETIC_PYTHON_VERSION=${{ inputs.python }}
-            export TF_PROJECT_NAME=tensorflow_noavx_${{ inputs.acceleration }}
+            export HERMETIC_PYTHON_VERSION=${{ matrix.python }}
+            export TF_PROJECT_NAME=tensorflow_noavx_${{ matrix.acceleration }}
             export PROJECT_NAME="$TF_PROJECT_NAME"
             export WHEEL_NAME="$TF_PROJECT_NAME"
-            case "${{ inputs.acceleration }}" in
+            case "${{ matrix.acceleration }}" in
             'gpu')
               TF_NEED_CUDA=1
               TF_BUILD_FLAGS="$TF_BUILD_FLAGS --config=cuda --config=cuda_wheel"
@@ -354,7 +376,7 @@ jobs:
       - name: Upload TensorFlow Wheel Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: tensorflow-noavx-tf${{ inputs.tensorflow }}-py${{ steps.setup_python.outputs.python-version }}
+          name: tensorflow-noavx-tf${{ matrix.tensorflow }}-py${{ steps.setup_python.outputs.python-version }}
           # Path is relative to the workspace root
           path: ${{ steps.build.outputs.PIP_WHL_DIR }}/*.whl
           retention-days: 7
@@ -367,18 +389,18 @@ jobs:
       - name: Download wheel artifact from build job
         uses: actions/download-artifact@v4
         with:
-          name: tensorflow-noavx-tf${{ inputs.tensorflow }}-py${{ steps.setup_python.outputs.python-version }}
+          name: tensorflow-noavx-tf${{ matrix.tensorflow }}-py${{ steps.setup_python.outputs.python-version }}
           path: dist
       - name: Display structure of downloaded files
         run: ls -R dist
       - name: Create GitHub Release and Upload Wheel
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: tf-v${{ inputs.tensorflow }}-noavx-py${{ steps.setup_python.outputs.python-version }}-build${{ github.run_id }}
-          name: TensorFlow ${{ inputs.tensorflow }} (No AVX) for Python ${{ inputs.python }}
+          tag_name: tf-v${{ matrix.tensorflow }}-noavx-py${{ steps.setup_python.outputs.python-version }}-build${{ github.run_id }}
+          name: TensorFlow ${{ matrix.tensorflow }} (No AVX) for Python ${{ matrix.python }}
           body: |
             TensorFlow wheel built from source without AVX/AVX2 instructions.
-            TensorFlow Version: ${{ inputs.tensorflow }}
+            TensorFlow Version: ${{ matrix.tensorflow }}
             Python Version: ${{ steps.setup_python.outputs.python-version }}
             Target Architecture Flags: -march=nehalem -mno-avx -mno-avx2
             Built via GitHub Actions run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
@@ -400,7 +422,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           # Must match the upload name in the 'build' job
-          name: tensorflow-noavx-${{ inputs.tensorflow }}-py${{ steps.setup_python.outputs.python-version }}
+          name: tensorflow-noavx-${{ matrix.tensorflow }}-py${{ steps.setup_python.outputs.python-version }}
           # Download to a temporary directory
           path: ./wheel-artifact
       - name: List downloaded artifact contents
