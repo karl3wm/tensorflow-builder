@@ -41,6 +41,7 @@ jobs:
     name: "Tensorflow ${{ matrix.tensorflow }} ${{ matrix.acceleration }} Python ${{ matrix.python }}"
     concurrency:
       group: ${{ matrix.tensorflow }}-${{ matrix.python }}-${{ matrix.acceleration }}
+      cancel-in-progress: true
     steps:
       - name: Disable man-db/auto-update and remove some packages
         run: |
