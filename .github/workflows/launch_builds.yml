@@ -1,4 +1,4 @@
-name: Build different versions of Tensorflow
+name: Launch Builds
 on:
   workflow_dispatch: # Allows manual triggering from the Actions tab
   schedule: # Example: Run weekly on Sunday at 03:00 UTC
