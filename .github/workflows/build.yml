@@ -217,10 +217,10 @@ jobs:
       # Tmate Debugging Step - uncomment/comment as needed
       # This will pause the workflow and output SSH connection details
       # Connect to the runner to manually inspect the environment and run commands
-      - name: Setup tmate session for debugging
-        if: ${{ matrix.os == 'macos' }}
-        uses: mxschmitt/action-tmate@v3
-        timeout-minutes: 60
+      # - name: Setup tmate session for debugging
+      #   if: ${{ matrix.os == 'macos' }}
+      #   uses: mxschmitt/action-tmate@v3
+      #   timeout-minutes: 60
       # ---------------------------------------------------------------------
       - name: Configure and build TensorFlow
         id: build
