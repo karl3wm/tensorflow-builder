@@ -276,7 +276,7 @@ jobs:
             echo "Running ./configure with environment variables:"
             export TF_ENABLE_XLA=1 TF_NEED_CUDA=0 TF_NEED_ROCM=0 TF_CONFIGURE_IOS=0 TF_SET_ANDROID_WORKSPACE=0
             export CC_OPT_FLAGS='-march=nehalem -mno-avx -mno-avx2 -O3'
-            export TF_BUILD_FLAGS="--max_idle_secs=1 --config=monolithic --config=opt --verbose_failures" # --toolchain_resolution_debug=@bazel_tools//tools/cpp:toolchain_type --subcommands # Build the pip package with enhanced verbosity
+            export TF_BUILD_FLAGS="--config=monolithic --config=opt --verbose_failures" # --toolchain_resolution_debug=@bazel_tools//tools/cpp:toolchain_type --subcommands # Build the pip package with enhanced verbosity
             export TF_PYTHON_VERSION=${{ matrix.python }}
             export HERMETIC_PYTHON_VERSION=${{ matrix.python }}
             export TF_PROJECT_NAME=tensorflow_noavx_${{ matrix.acceleration }}
@@ -366,7 +366,7 @@ jobs:
                 fi
 
                 # standard build
-                bazel build $TF_BUILD_FLAGS //tensorflow/tools/pip_package:wheel
+                bazel --max_idle_secs=1 build $TF_BUILD_FLAGS //tensorflow/tools/pip_package:wheel
                 PIP_WHL_DIR="$(pwd)"/bazel-bin/tensorflow/tools/pip_package/wheel_house
             fi
 
