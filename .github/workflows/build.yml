@@ -175,6 +175,7 @@ jobs:
           chmod +x llvm.sh
           sudo ./llvm.sh "$CLANG_VER"
           sudo update-alternatives --install /usr/bin/clang clang /usr/bin/clang-"$CLANG_VER" 0
+          sudo update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-"$CLANG_VER" 0
           rm llvm.sh
           echo "LLVM installation complete."
           hash -r
