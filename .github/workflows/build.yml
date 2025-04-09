@@ -385,8 +385,10 @@ jobs:
         if: always()
         working-directory: tensorflow
         run: |
+          ls -l ~/.cache/bazel ~/.cache/bazelisk build_output/cache
           bazel --block_for_lock shutdown
           sleep 5
+          ls -l ~/.cache/bazel ~/.cache/bazelisk build_output/cache
           # for path in ~/.cache/bazel ~/.cache/bazelisk tensorflow/build_output/cache
           # do
           #   if ! [ -d "$path" ]; then continue; fi
