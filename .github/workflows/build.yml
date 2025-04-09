@@ -164,7 +164,7 @@ jobs:
           ref: v${{ matrix.tensorflow }}${{ matrix.acceleration == 'rocm' && '-rocm-enhanced' || '' }}
       - name: Install LLVM (Ubuntu)
         if: ${{ matrix.os == 'linux' }}
-        working-directory: ./tensorflow
+        working-directory: tensorflow
         run: |
           # note that prior to tensorflow 2.13 or so clang was not used
           # pick the second-oldest supported version
@@ -219,7 +219,7 @@ jobs:
       # ---------------------------------------------------------------------
       - name: Configure and build TensorFlow
         id: build
-        working-directory: ./tensorflow
+        working-directory: tensorflow
         #timeout-minutes: 300 # GitHub Actions maximum for free tier is 6 hours/job
         timeout-minutes: 5 # short timeout for development
         # env:
@@ -383,6 +383,7 @@ jobs:
           echo PIP_WHL_DIR="$PIP_WHL_DIR" >> $GITHUB_OUTPUT
       - name: Always Shutdown Bazel Before Caching
         if: always()
+        working-directory: tensorflow
         run: |
           bazel --block_for_lock shutdown
           sleep 5
