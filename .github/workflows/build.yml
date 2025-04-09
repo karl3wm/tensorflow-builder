@@ -280,6 +280,7 @@ jobs:
             export TF_BUILD_FLAGS="--config=monolithic --config=opt --verbose_failures" # --toolchain_resolution_debug=@bazel_tools//tools/cpp:toolchain_type --subcommands # Build the pip package with enhanced verbosity
             export TF_PYTHON_VERSION=${{ matrix.python }}
             export HERMETIC_PYTHON_VERSION=${{ matrix.python }}
+            export HERMETIC_CUDA_COMPUTE_CAPABILITIES="3.5,5.2,6.0,6.1,7.0"
             export TF_PROJECT_NAME=tensorflow_noavx_${{ matrix.acceleration }}
             export PROJECT_NAME="$TF_PROJECT_NAME"
             export WHEEL_NAME="$TF_PROJECT_NAME"
