@@ -132,6 +132,7 @@ jobs:
           ;;
           esac
           python3 -m pip install --upgrade --user pip numpy wheel packaging requests opt_einsum
+          python3 -m pip install --upgrade --user genapi
           python3 -m pip install --upgrade --user keras_preprocessing --no-deps
           echo "Done installing system packages."
       - name: Install Bazel
