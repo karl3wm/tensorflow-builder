@@ -386,6 +386,7 @@ jobs:
         working-directory: tensorflow
         run: |
           ls -l ~/.cache/bazel ~/.cache/bazelisk build_output/cache
+          kill $(bazel info server_pid)
           bazel --block_for_lock shutdown
           sleep 5
           ls -l ~/.cache/bazel ~/.cache/bazelisk build_output/cache
