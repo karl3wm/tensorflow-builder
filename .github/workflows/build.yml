@@ -353,8 +353,17 @@ jobs:
                     # root of tensorflow directory.
                 # with tensorflow>=v2.18.0, the document was updated to say things are now like JAX and XLA,
                 #  and refers to https://pip-tools.readthedocs.io/en/latest/cli/pip-compile/
+
+                    # instantiate the new requirements file
                     touch requirements_lock_${py_ver_major}_${py_ver_minor}.txt
+                    # remove the testing dependencies for simplicity
                     sed -i '/needed.*for.*testing/,$ s/^/#/' ci/official/requirements_updater/requirements.in
+                    # manually implement a numpy version fix included in v2.19 if not present
+                    if ! git merge-base --is-ancestor c46888a69557569754b577bfd52c95f12b88c4a0 HEAD; then
+                        sed -i 's/\(numpy.*\)\(< 2\.1\.0\)/\1< 2.2.0/' tensorflow/tools/pip_package/setup.py
+                        sed -i 's/numpy ~= 2\.0\.0/numpy >= 2.0.0, < 2.2.0/p; s/scipy ~= 1.13.0/scipy >= 1.13.0/p' ci/official/requirements_updater/requirements.in
+                    fi
+                    # fill the new requirements file
                     bazel run //ci/official/requirements_updater:requirements.update --repo_env=HERMETIC_PYTHON_VERSION=${py_ver_major}.${py_ver_minor} -- --pre
 
                     # for offset in 1 -1 2 -2
