@@ -385,6 +385,7 @@ jobs:
           echo PIP_WHL_DIR="$PIP_WHL_DIR" >> $GITHUB_OUTPUT
       - name: Always Shutdown Bazel Before Caching
         if: always()
+        shell: bash -vx -e {0}
         working-directory: tensorflow
         run: |
           ls -l ~/.cache/bazel ~/.cache/bazelisk build_output/cache || true
