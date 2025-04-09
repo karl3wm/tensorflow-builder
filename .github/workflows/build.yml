@@ -390,7 +390,7 @@ jobs:
         run: |
           ls -l ~/.cache/bazel ~/.cache/bazelisk build_output/cache || true
           echo "kill $(bazel --noblock_for_lock info server_pid)"
-          kill $(bazel --noblock_for_lcok info server_pid)
+          kill $(bazel --noblock_for_lock info server_pid)
           echo "bazel --block_for_lock shutdown"
           bazel --block_for_lock shutdown
           sleep 5
