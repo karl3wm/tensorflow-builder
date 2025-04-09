@@ -326,6 +326,7 @@ jobs:
                     #
                     # 1) In the `WORKSPACE` file add a new version to `python_versions` argument of
                     # the `python_register_multi_toolchains` function.
+                    sed -i '1,/[0-9]\.[0-9].*requirements_lock_[0-9]_[0-9].*txt/ s/^\(.*\)\([0-9][0-9]*\.[0-9][0-9]*\)\([^0-9].*requirements_lock_\)\([0-9][0-9]*_[0-9][0-9]*\)\(\.txt.*,\s*\)$/&\n\1'"${py_ver_major}.${py_ver_minor}"'\3'"${py_ver_major}_${py_ver_minor}"'\5/' WORKSPACE
                     #
                     # 2) In `BUILD.bazel` file add a load statement for the new version, e.g.
                     #
@@ -352,6 +353,7 @@ jobs:
                     # root of tensorflow directory.
                 # with tensorflow>=v2.18.0, the document was updated to say things are now like JAX and XLA,
                 #  and refers to https://pip-tools.readthedocs.io/en/latest/cli/pip-compile/
+                    bazel run //ci/official/requirements_updater:requirements.update -- --pre # uses HERMETIC_PYTHON_VERSION
 
                     # for offset in 1 -1 2 -2
                     # do
@@ -370,7 +372,6 @@ jobs:
                     # done
                     # sed -i "s/\"${py_ver_major}\.${py_ver_alternate}\"/\"${py_ver_major}.${py_ver_minor}\"/g; s/_lock_${py_ver_major}_${py_ver_alternate}\.txt/_lock_${py_ver_major}_${py_ver_minor}.txt/g" WORKSPACE
                     # grep requirements_lock WORKSPACE
-                    bazel run //ci/official/requirements_updater:requirements.update -- --pre # uses HERMETIC_PYTHON_VERSION
                 else
                     echo "requirements_lock_${py_ver_major}_${py_ver_minor}.txt exists"
                 fi
