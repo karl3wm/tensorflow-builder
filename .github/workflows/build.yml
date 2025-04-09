@@ -327,7 +327,7 @@ jobs:
                     #
                     # 1) In the `WORKSPACE` file add a new version to `python_versions` argument of
                     # the `python_register_multi_toolchains` function.
-                    sed -i '1,/[0-9]\.[0-9].*requirements_lock_[0-9]_[0-9].*txt/ s/^\(.*\)\([0-9][0-9]*\.[0-9][0-9]*\)\([^0-9].*requirements_lock_\)\([0-9][0-9]*_[0-9][0-9]*\)\(\.txt.*,\s*\)$/&\n\1'"${py_ver_major}.${py_ver_minor}"'\3'"${py_ver_major}_${py_ver_minor}"'\5/' WORKSPACE
+                    sed -i.bak '1,/[0-9]\.[0-9].*requirements_lock_[0-9]_[0-9].*txt/ s/^\(.*\)\([0-9][0-9]*\.[0-9][0-9]*\)\([^0-9].*requirements_lock_\)\([0-9][0-9]*_[0-9][0-9]*\)\(\.txt.*,\s*\)$/&\n\1'"${py_ver_major}.${py_ver_minor}"'\3'"${py_ver_major}_${py_ver_minor}"'\5/' WORKSPACE
                     #
                     # 2) In `BUILD.bazel` file add a load statement for the new version, e.g.
                     #
@@ -358,11 +358,12 @@ jobs:
                     # instantiate the new requirements file
                     touch requirements_lock_${py_ver_major}_${py_ver_minor}.txt
                     # remove the testing dependencies for simplicity
-                    sed -i '/needed.*for.*testing/,$ s/^/#/' ci/official/requirements_updater/requirements.in
+
+                    sed -i.bak '/needed.*for.*testing/,$ s/^/#/' ci/official/requirements_updater/requirements.in
                     # manually implement a numpy version fix included in v2.19 if not present
                     if ! git merge-base --is-ancestor c46888a69557569754b577bfd52c95f12b88c4a0 HEAD; then
-                        sed -i 's/\(numpy.*\)\(< 2\.1\.0\)/\1< 2.2.0/' tensorflow/tools/pip_package/setup.py
-                        sed -i 's/numpy ~= 2\.0\.0/numpy >= 2.0.0, < 2.2.0/p; s/scipy ~= 1.13.0/scipy >= 1.13.0/p' ci/official/requirements_updater/requirements.in
+                        sed -i.bak 's/\(numpy.*\)\(< 2\.1\.0\)/\1< 2.2.0/' tensorflow/tools/pip_package/setup.py
+                        sed -i.bak 's/numpy ~= 2\.0\.0/numpy >= 2.0.0, < 2.2.0/p; s/scipy ~= 1.13.0/scipy >= 1.13.0/p' ci/official/requirements_updater/requirements.in
                     fi
                     # fill the new requirements file
                     bazel run //ci/official/requirements_updater:requirements.update --repo_env=HERMETIC_PYTHON_VERSION=${py_ver_major}.${py_ver_minor} -- --pre
@@ -382,7 +383,7 @@ jobs:
                     #         REQUIREMENTSFN="${fn%_*}_${py_ver_minor}.txt"
                     #         grep --invert-match '^tensorflow' ci/official/requirements_updater/requirements.in | tee "$REQUIREMENTSFN"
                     # done
-                    # sed -i "s/\"${py_ver_major}\.${py_ver_alternate}\"/\"${py_ver_major}.${py_ver_minor}\"/g; s/_lock_${py_ver_major}_${py_ver_alternate}\.txt/_lock_${py_ver_major}_${py_ver_minor}.txt/g" WORKSPACE
+                    # sed -i.bak "s/\"${py_ver_major}\.${py_ver_alternate}\"/\"${py_ver_major}.${py_ver_minor}\"/g; s/_lock_${py_ver_major}_${py_ver_alternate}\.txt/_lock_${py_ver_major}_${py_ver_minor}.txt/g" WORKSPACE
                     # grep requirements_lock WORKSPACE
                 else
                     echo "requirements_lock_${py_ver_major}_${py_ver_minor}.txt exists"
@@ -394,7 +395,7 @@ jobs:
             fi
 
             #echo "Migrating build_pip_package vs build_pip_package_py ..."
-            #find -name build_pip_package.py && sed -i 's!PIP_BUILD_TARGET="//tensorflow/tools/pip_package:build_pip_package"!PIP_BUILD_TARGET="//tensorflow/tools/pip_package:build_pip_package_py"!' tensorflow/tools/ci_build/builds/pip_new.sh
+            #find -name build_pip_package.py && sed -i.bak 's!PIP_BUILD_TARGET="//tensorflow/tools/pip_package:build_pip_package"!PIP_BUILD_TARGET="//tensorflow/tools/pip_package:build_pip_package_py"!' tensorflow/tools/ci_build/builds/pip_new.sh
             #echo "Running Bazel build and creating wheel file ..."
             #. tensorflow/tools/ci_build/builds/pip_new.sh
             #echo "Bazel build finished. Creating wheel file..."
