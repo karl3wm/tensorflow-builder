@@ -54,9 +54,9 @@ jobs:
         run_id: ["${{ github.event.client_payload.run_id || inputs.run_id || github.run_id }}"]
     runs-on: ${{ matrix.os == 'linux' && 'ubuntu-22.04' || 'macos-13' }} # macos-13 is hopefully x86_64 https://docs.github.com/en/actions/using-github-hosted-runners/using-github-hosted-runners/about-github-hosted-runners#standard-github-hosted-runners-for-public-repositories
     name: "Tensorflow ${{ matrix.tensorflow }} ${{ matrix.os }} ${{ matrix.acceleration }} Python ${{ matrix.python }}"
-    concurrency:
-      group: ${{ matrix.tensorflow }}-${{ matrix.os }}-${{ matrix.acceleration }}-${{ matrix.python }}
-      cancel-in-progress: true
+    #concurrency:
+    #  group: ${{ matrix.tensorflow }}-${{ matrix.os }}-${{ matrix.acceleration }}-${{ matrix.python }}
+    #  cancel-in-progress: true
     steps:
       - name: Disable man-db/auto-update and remove some packages (Ubuntu)
         if: ${{ matrix.os == 'linux' }}
