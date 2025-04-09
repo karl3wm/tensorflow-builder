@@ -220,8 +220,8 @@ jobs:
       - name: Configure and build TensorFlow
         id: build
         working-directory: ./tensorflow
-        timeout-minutes: 300 # GitHub Actions maximum for free tier is 6 hours/job
-        #timeout-minutes: 5 # short timeout for development
+        #timeout-minutes: 300 # GitHub Actions maximum for free tier is 6 hours/job
+        timeout-minutes: 5 # short timeout for development
         # env:
         #   # Environment variables for TensorFlow's configure script (non-interactive)
         #   PYTHON_BIN_PATH: ${{ steps.generated.outputs.PYTHON_BIN_PATH }}
@@ -276,7 +276,7 @@ jobs:
             echo "Running ./configure with environment variables:"
             export TF_ENABLE_XLA=1 TF_NEED_CUDA=0 TF_NEED_ROCM=0 TF_CONFIGURE_IOS=0 TF_SET_ANDROID_WORKSPACE=0
             export CC_OPT_FLAGS='-march=nehalem -mno-avx -mno-avx2 -O3'
-            export TF_BUILD_FLAGS="--config=monolithic --config=opt --verbose_failures" # --toolchain_resolution_debug=@bazel_tools//tools/cpp:toolchain_type --subcommands # Build the pip package with enhanced verbosity
+            export TF_BUILD_FLAGS="--max_idle_secs=1 --config=monolithic --config=opt --verbose_failures" # --toolchain_resolution_debug=@bazel_tools//tools/cpp:toolchain_type --subcommands # Build the pip package with enhanced verbosity
             export TF_PYTHON_VERSION=${{ matrix.python }}
             export HERMETIC_PYTHON_VERSION=${{ matrix.python }}
             export TF_PROJECT_NAME=tensorflow_noavx_${{ matrix.acceleration }}
@@ -381,10 +381,10 @@ jobs:
           echo "Bazel build finished and wheel file created in ${PIP_WHL_DIR}:"
           ls "$PIP_WHL_DIR"/*.whl
           echo PIP_WHL_DIR="$PIP_WHL_DIR" >> $GITHUB_OUTPUT
-      - name: Always Prepare For Saving Cache
+      - name: Always Shutdown Bazel Before Caching
         if: always()
         run: |
-          bazel shutdown
+          bazel --block_for_lock shutdown
           sleep 5
           # for path in ~/.cache/bazel ~/.cache/bazelisk tensorflow/build_output/cache
           # do
