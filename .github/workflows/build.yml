@@ -383,19 +383,17 @@ jobs:
           echo "Bazel build finished and wheel file created in ${PIP_WHL_DIR}:"
           ls "$PIP_WHL_DIR"/*.whl
           echo PIP_WHL_DIR="$PIP_WHL_DIR" >> $GITHUB_OUTPUT
-      - name: Setup tmate session for debugging
-        if: always()
-        uses: mxschmitt/action-tmate@v3
-        timeout-minutes: 60
+      # - name: Setup tmate session for debugging
+      #   if: always()
+      #   uses: mxschmitt/action-tmate@v3
+      #   timeout-minutes: 60
       - name: Always Shutdown Bazel Before Caching
         if: always()
         shell: bash -vx -e {0}
         working-directory: tensorflow
         run: |
           ls -l ~/.cache/bazel ~/.cache/bazelisk build_output/cache || true
-          echo "kill $(bazel --noblock_for_lock info server_pid)"
-          kill $(bazel --noblock_for_lock info server_pid)
-          echo "bazel --block_for_lock shutdown"
+          killall bazel
           bazel --block_for_lock shutdown
           sleep 5
           ls -l ~/.cache/bazel ~/.cache/bazelisk build_output/cache || true
