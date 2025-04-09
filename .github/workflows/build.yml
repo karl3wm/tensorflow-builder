@@ -353,7 +353,7 @@ jobs:
                     # root of tensorflow directory.
                 # with tensorflow>=v2.18.0, the document was updated to say things are now like JAX and XLA,
                 #  and refers to https://pip-tools.readthedocs.io/en/latest/cli/pip-compile/
-                    touch requirements_lcok_${py_ver_major}_${py_ver_minor}.txt
+                    touch requirements_lock_${py_ver_major}_${py_ver_minor}.txt
                     sed -i '/needed.*for.*testing/,$ s/^/#/' ci/official/requirements_updater/requirements.in
                     bazel run //ci/official/requirements_updater:requirements.update --repo_env=HERMETIC_PYTHON_VERSION=${py_ver_major}.${py_ver_minor} -- --pre
 
