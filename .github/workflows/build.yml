@@ -184,6 +184,8 @@ jobs:
           path: |
             ~/.cache/bazel
             ~/.cache/bazelisk
+            /private/var/tmp
+             ~/Library/Caches/bazelisk
             tensorflow/build_output/cache
           key: ${{ steps.caching.outputs.lastkey }}
       # - name: Dump Configuration and Environment (Troubleshooting)
@@ -392,11 +394,11 @@ jobs:
         shell: bash -vx -e {0}
         working-directory: tensorflow
         run: |
-          ls -l ~/.cache/bazel ~/.cache/bazelisk build_output/cache || true
+          # ls -l ~/.cache/bazel ~/.cache/bazelisk /private/var/tmp build_output/cache || true
           killall bazel
           bazel --block_for_lock shutdown
           sleep 5
-          ls -l ~/.cache/bazel ~/.cache/bazelisk build_output/cache || true
+          # ls -l ~/.cache/bazel ~/.cache/bazelisk /private/var/tmp build_output/cache || true
           # for path in ~/.cache/bazel ~/.cache/bazelisk tensorflow/build_output/cache
           # do
           #   if ! [ -d "$path" ]; then continue; fi
@@ -410,6 +412,8 @@ jobs:
           path: |
             ~/.cache/bazel
             ~/.cache/bazelisk
+            /private/var/tmp
+             ~/Library/Caches/bazelisk
             tensorflow/build_output/cache
           key: ${{ steps.caching.outputs.nextkey }}
       - name: Upload TensorFlow Wheel Artifact
