@@ -384,7 +384,7 @@ jobs:
           ls "$PIP_WHL_DIR"/*.whl
           echo PIP_WHL_DIR="$PIP_WHL_DIR" >> $GITHUB_OUTPUT
       - name: Setup tmate session for debugging
-        if: always() && ${{ matrix.os == 'macos' }}
+        if: always()
         uses: mxschmitt/action-tmate@v3
         timeout-minutes: 60
       - name: Always Shutdown Bazel Before Caching
