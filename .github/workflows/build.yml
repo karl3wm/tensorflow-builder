@@ -92,7 +92,7 @@ jobs:
           echo "lastkey=$LATEST_KEY" >> $GITHUB_OUTPUT
           echo "nextkey=$NEXT_KEY" >> $GITHUB_OUTPUT
       - name: Free disk space (Ubuntu)
-        if: ${{ matrix.os == 'linux' }}
+        if: ${{ matrix.os == 'linux'  && matrix.acceleration != 'cpu' }}
         uses: jlumbroso/free-disk-space@main
       #   with:
       #     tool-cache: true
