@@ -321,7 +321,7 @@ jobs:
                 py_ver_minor=${HERMETIC_PYTHON_VERSION#*.}
                 if ! [ -e requirements_lock_${py_ver_major}_${py_ver_minor}.txt ]
                 then
-                # in ci/official/requirements_updater/ which is the tree the document discusses::
+                # prior to v2.18.0, the below was the documentation for adding a new python version:
                     # ### How to add a new Python version
                     #
                     # 1) In the `WORKSPACE` file add a new version to `python_versions` argument of
@@ -350,6 +350,8 @@ jobs:
                     #
                     # 4) As a result, a new `requirements_lock_3_11.txt` file should appear under the
                     # root of tensorflow directory.
+                # with tensorflow>=v2.18.0, the document was updated to say things are now like JAX and XLA,
+                #  and refers to https://pip-tools.readthedocs.io/en/latest/cli/pip-compile/
                     for offset in 1 -1 2 -2
                     do
                             py_ver_alternate=$((py_ver_minor+offset))
