@@ -412,6 +412,21 @@ jobs:
       #   if: always()
       #   uses: mxschmitt/action-tmate@v3
       #   timeout-minutes: 60
+      - name: Run Tests
+        working-directory: tensorflow
+        run: |
+          case "${{ matrix.acceleration }}" in
+          'cpu')
+            export flags="$TF_BUILD_FLAGS --config=cuda --config=cuda_wheel"
+          ;;
+          'gpu')
+            export LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:/usr/local/cuda/lib64:/usr/local/cuda/extras/CUPTI/lib64:$LD_LIBRARY_PATH"
+            export flags="--config=linux --config=cuda -k"
+          ;;
+          esac
+          bazel test --test_sharding_strategy=disabled ${flags} tensorflow/python/kernel_tests/nn_ops:softmax_op_test
+          bazel test --test_sharding_strategy=disabled ${flags} //tensorflow/python/saved_model:load_test --test_filter=*LoadTest.test_capture_variables*
+          bazel test ${flags} //tensorflow/python/...
       - name: Always Shutdown Bazel Before Caching
         if: always()
         working-directory: tensorflow
