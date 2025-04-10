@@ -67,7 +67,7 @@ jobs:
     runs-on: ${{ matrix.os == 'linux' && 'ubuntu-22.04' || 'macos-13' }} # macos-13 is hopefully x86_64 https://docs.github.com/en/actions/using-github-hosted-runners/using-github-hosted-runners/about-github-hosted-runners#standard-github-hosted-runners-for-public-repositories
     name: "Tensorflow ${{ matrix.tensorflow }} ${{ matrix.os }} ${{ matrix.acceleration }}${{ matrix.debug=='true'&&' dbg'||'' }} Python ${{ matrix.python }}"
     concurrency:
-      group: ${{ matrix.tensorflow }}-${{ matrix.os }}-${{ matrix.acceleration }}${{ matrix.debug && '-dbg' || ''}}-${{ matrix.python }}
+      group: ${{ matrix.tensorflow }}-${{ matrix.os }}-${{ matrix.acceleration }}-${{ matrix.debug }}-${{ matrix.python }}
       #cancel-in-progress: true
     steps:
       - name: Disable man-db/auto-update and remove some packages (Ubuntu)
