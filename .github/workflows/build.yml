@@ -282,7 +282,8 @@ jobs:
             export TF_ENABLE_XLA=1 TF_NEED_CUDA=0 TF_NEED_ROCM=0 TF_CONFIGURE_IOS=0 TF_SET_ANDROID_WORKSPACE=0
             export CC_OPT_FLAGS='-march=nehalem -mno-avx -mno-avx2 -O3'
             #export TF_BUILD_FLAGS="--config=monolithic --config=opt"
-            export TF_BUILD_FLAGS="--config=dbg"
+            export TF_BUILD_FLAGS="--config=opt"
+            #export TF_BUILD_FLAGS="--config=dbg"
             TF_BUILD_FLAGS="$TF_BUILD_FLAGS --verbose_failures" # --toolchain_resolution_debug=@bazel_tools//tools/cpp:toolchain_type --subcommands # Build the pip package with enhanced verbosity
             TF_BUILD_FLAGS="$TF_BUILD_FLAGS --disk_cache=~/.cache/bazel"
             # disable avx usage by XNNPACK
