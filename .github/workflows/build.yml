@@ -56,7 +56,7 @@ jobs:
     name: "Tensorflow ${{ matrix.tensorflow }} ${{ matrix.os }} ${{ matrix.acceleration }} Python ${{ matrix.python }}"
     concurrency:
       group: ${{ matrix.tensorflow }}-${{ matrix.os }}-${{ matrix.acceleration }}-${{ matrix.python }}
-      cancel-in-progress: true
+      #cancel-in-progress: true
     steps:
       - name: Disable man-db/auto-update and remove some packages (Ubuntu)
         if: ${{ matrix.os == 'linux' }}
