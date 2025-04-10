@@ -22,6 +22,10 @@ on:
           - macos
           - windows
         required: true
+      debug:
+        type: boolean
+        required: false
+        default: false
       run_id:
         type: string
         required: false
@@ -39,6 +43,10 @@ on:
       os:
         type: string
         required: true
+      debug:
+        type: boolean
+        required: false
+        default: false
       run_id:
         type: string
         required: false
@@ -51,6 +59,7 @@ jobs:
         tensorflow: ["${{ github.event.client_payload.tensorflow || inputs.tensorflow }}"]
         acceleration: ["${{ github.event.client_payload.acceleration || inputs.acceleration }}"]
         os: ["${{ github.event.client_payload.os || inputs.os }}"]
+        debug: ["${{ github.event.client_payload.debug || inputs.debug }}"]
         run_id: ["${{ github.event.client_payload.run_id || inputs.run_id || github.run_id }}"]
     runs-on: ${{ matrix.os == 'linux' && 'ubuntu-22.04' || 'macos-13' }} # macos-13 is hopefully x86_64 https://docs.github.com/en/actions/using-github-hosted-runners/using-github-hosted-runners/about-github-hosted-runners#standard-github-hosted-runners-for-public-repositories
     name: "Tensorflow ${{ matrix.tensorflow }} ${{ matrix.os }} ${{ matrix.acceleration }} Python ${{ matrix.python }}"
@@ -281,10 +290,18 @@ jobs:
           then
             echo "Running ./configure with environment variables:"
             export TF_ENABLE_XLA=1 TF_NEED_CUDA=0 TF_NEED_ROCM=0 TF_CONFIGURE_IOS=0 TF_SET_ANDROID_WORKSPACE=0
-            export CC_OPT_FLAGS='-march=nehalem -mno-avx -mno-avx2 -Ofast -flto'
-            #export TF_BUILD_FLAGS="--config=monolithic --config=opt"
-            export TF_BUILD_FLAGS="--config=opt"
-            #export TF_BUILD_FLAGS="--config=dbg"
+            export CC_OPT_FLAGS='-Ofast -flto'
+            if ${{ matrix.debug }}; then
+              export TF_BUILD_FLAGS="--config=dbg"
+            else
+              #export TF_BUILD_FLAGS="--config=monolithic --config=opt"
+              export TF_BUILD_FLAGS="--config=opt"
+            fi
+            for opt in -march=nehalem -mno-avx -mno-avx2
+            do
+              TF_BUILD_FLAGS="$TF_BUILD_FLAGS --copt=$opt"
+              TF_BUILD_FLAGS="$TF_BUILD_FLAGS --host_copt=$opt"
+            done
             TF_BUILD_FLAGS="$TF_BUILD_FLAGS --verbose_failures" # --toolchain_resolution_debug=@bazel_tools//tools/cpp:toolchain_type --subcommands # Build the pip package with enhanced verbosity
             TF_BUILD_FLAGS="$TF_BUILD_FLAGS --disk_cache=~/.cache/bazel"
             # disable avx usage by XNNPACK
@@ -308,7 +325,7 @@ jobs:
             ./configure
             echo "Configure finished."
 
-            # disable AVX in oneDNN although it may detect at runtime it simplifies the build
+            # disable AVX in oneDNN although it may detect at runtime it simplifies the build. bazel only puts this change in place if it is not already cached.
             sed -i.bak 's/\(#define .*AVX.*\) 1/\1 0/' third_party/mkl_dnn/mkldnn_v1.BUILD third_party/xla/third_party/tsl/third_party/mkl_dnn/mkldnn_v1.BUILD
 
             if [ -e tensorflow/tools/pip_package/build_pip_package.sh ]
