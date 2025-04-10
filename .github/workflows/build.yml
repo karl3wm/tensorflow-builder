@@ -326,7 +326,7 @@ jobs:
             echo "Configure finished."
 
             # disable AVX in oneDNN although it may detect at runtime it simplifies the build. bazel only puts this change in place if it is not already cached.
-            sed -i.bak 's/\(#define .*AVX.*\) 1/\1 0/' third_party/mkl_dnn/mkldnn_v1.BUILD third_party/xla/third_party/tsl/third_party/mkl_dnn/mkldnn_v1.BUILD
+            sed -i.bak 's/\(#define .*AVX.*\) 1/\1 0/; s/\(#define BUILD_GEMM_KERNELS_ALL\) 1/\1 0/' third_party/mkl_dnn/mkldnn_v1.BUILD third_party/xla/third_party/tsl/third_party/mkl_dnn/mkldnn_v1.BUILD
 
             if [ -e tensorflow/tools/pip_package/build_pip_package.sh ]
             then
