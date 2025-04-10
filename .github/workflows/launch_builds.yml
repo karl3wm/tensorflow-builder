@@ -37,7 +37,7 @@ jobs:
       - name: Fetch recent Python versions
         id: python
         run: |
-          SKIP_PYTHON_VERS=0
+          SKIP_PYTHON_VERS=1
           LATEST_PYTHON_VERS=1
           TOTAL_PYTHON_VERS=16
           mkdir -p python.git
