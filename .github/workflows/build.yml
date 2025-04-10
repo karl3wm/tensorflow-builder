@@ -64,7 +64,7 @@ jobs:
     runs-on: ${{ matrix.os == 'linux' && 'ubuntu-22.04' || 'macos-13' }} # macos-13 is hopefully x86_64 https://docs.github.com/en/actions/using-github-hosted-runners/using-github-hosted-runners/about-github-hosted-runners#standard-github-hosted-runners-for-public-repositories
     name: "Tensorflow ${{ matrix.tensorflow }} ${{ matrix.os }} ${{ matrix.acceleration }} Python ${{ matrix.python }}"
     concurrency:
-      group: ${{ matrix.tensorflow }}-${{ matrix.os }}-${{ matrix.acceleration }}-${{ matrix.python }}
+      group: ${{ matrix.tensorflow }}-${{ matrix.os }}-${{ matrix.acceleration }}${{ matrix.debug && '-dbg' || ''}}-${{ matrix.python }}
       #cancel-in-progress: true
     steps:
       - name: Disable man-db/auto-update and remove some packages (Ubuntu)
@@ -86,7 +86,7 @@ jobs:
         run: |
           sudo apt-get install --yes --quiet jq coreutils || brew install jq
           #env | sort
-          KEY_PREFIX="bazel-cache-os${{ runner.os }}-tfv${{ matrix.tensorflow }}-py${{ steps.setup_python.outputs.python-version }}-${{ matrix.acceleration }}"
+          KEY_PREFIX="bazel-cache-os${{ runner.os }}-tfv${{ matrix.tensorflow }}${{ matrix.debug && 'dbg' || '' }}-py${{ steps.setup_python.outputs.python-version }}-${{ matrix.acceleration }}"
           #CACHES_API="-H 'Accept: application/vnd.github+json' -H 'X-GitHub-Api-Version: 2022-11-28' /repos/${{ github.repository }}/actions/caches"
           CACHES_API="/repos/${{ github.repository }}/actions/caches"
           #for arg in gh api "${CACHES_API}"?key="$KEY_PREFIX"\&sort=created_at; do echo "- '$arg'"; done
