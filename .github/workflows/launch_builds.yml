@@ -37,7 +37,7 @@ jobs:
         id: python
         run: |
           SKIP_PYTHON_VERS=0
-          LATEST_PYTHON_VERS=2
+          LATEST_PYTHON_VERS=1
           TOTAL_PYTHON_VERS=16
           mkdir -p python.git
           cd python.git
