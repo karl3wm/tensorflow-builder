@@ -282,6 +282,7 @@ jobs:
             export TF_ENABLE_XLA=1 TF_NEED_CUDA=0 TF_NEED_ROCM=0 TF_CONFIGURE_IOS=0 TF_SET_ANDROID_WORKSPACE=0
             export CC_OPT_FLAGS='-march=nehalem -mno-avx -mno-avx2 -O3'
             export TF_BUILD_FLAGS="--config=monolithic --config=opt --verbose_failures" # --toolchain_resolution_debug=@bazel_tools//tools/cpp:toolchain_type --subcommands # Build the pip package with enhanced verbosity
+            export TF_BUILD_FLAGS="$TF_BUILD_FLAGS --disk_cache=~/.cache/bazel"
             # disable avx usage by XNNPACK
             TF_BUILD_FLAGS="$TF_BUILD_FLAGS --define=xnn_enable_avx512f=false --define=xnn_enable_avx512skx=false --define=xnn_enable_avx512vbmi=false --define=xnn_enable_avx512vnni=false --define=xnn_enable_avx512vnnigfni=false --define=xnn_enable_avx512amx=false --define=xnn_enable_avx512fp16=false --define=xnn_enable_avx512bf16=false --define=xnn_enable_avxvnni=false --define=xnn_enable_avxvnniint8=false --define=xnn_enable_avx256skx=false --define=xnn_enable_avx256vnni=false --define=xnn_enable_avx256vnnigfni=false"
             export TF_PYTHON_VERSION=${{ matrix.python }}
