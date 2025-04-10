@@ -21,7 +21,7 @@ jobs:
         id: tensorflow
         run: |
           SKIP_TENSORFLOW_VERS=0
-          LATEST_TENSORFLOW_VERS=2
+          LATEST_TENSORFLOW_VERS=1
           TOTAL_TENSORFLOW_VERS=16
           mkdir -p tensorflow.git
           cd tensorflow.git
