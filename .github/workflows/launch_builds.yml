@@ -55,11 +55,11 @@ jobs:
         python: ${{ fromJSON(needs.version_enumeration.outputs.python) }}
         tensorflow: ${{ fromJSON(needs.version_enumeration.outputs.tensorflow) }}
         acceleration: ['cpu'] #, 'gpu', 'rocm']
-        debug: [false, true]
+        debug: ['false', 'true']
         os: ['linux', 'macos'] #, 'windows']
     steps:
       - name: Dispatch repository events
         uses: peter-evans/repository-dispatch@v3
         with:
-          event-type: "TensorFlow ${{ matrix.tensorflow }} ${{ matrix.os }} ${{ matrix.acceleration }}${{ matrix.debug && ' dbg' || '' }} Python ${{ matrix.python }} "
-          client-payload: '{"python": "${{ matrix.python }}", "tensorflow": "${{ matrix.tensorflow }}", "os": "${{ matrix.os }}", "acceleration": "${{ matrix.acceleration }}", "debug": ${{ matrix.debug }}, "run_id": "${{ github.run_id }}.${{ github.run_attempt }}" }'
+          event-type: "TensorFlow ${{ matrix.tensorflow }} ${{ matrix.os }} ${{ matrix.acceleration }}${{ matrix.debug=='true' && ' dbg' || '' }} Python ${{ matrix.python }} "
+          client-payload: '{"python": "${{ matrix.python }}", "tensorflow": "${{ matrix.tensorflow }}", "os": "${{ matrix.os }}", "acceleration": "${{ matrix.acceleration }}", "debug": "${{ matrix.debug }}", "run_id": "${{ github.run_id }}.${{ github.run_attempt }}" }'
