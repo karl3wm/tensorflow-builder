@@ -71,7 +71,6 @@ jobs:
           python-version: ${{ matrix.python }}
       - name: Plan caching
         id: caching
-        shell: bash -vx -e {0}
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -96,7 +95,7 @@ jobs:
         if: ${{ matrix.os == 'linux'  && matrix.acceleration != 'cpu' }}
         uses: jlumbroso/free-disk-space@main
       #   with:
-      #     tool-cache: true
+      #     tool-cache: true # frees more space
       - name: Add CUDA and ROCm repositories (Ubuntu)
         if: ${{ matrix.os == 'linux' }}
         run: |
