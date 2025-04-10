@@ -293,7 +293,7 @@ jobs:
           then
             echo "Running ./configure with environment variables:"
             export TF_ENABLE_XLA=1 TF_NEED_CUDA=0 TF_NEED_ROCM=0 TF_CONFIGURE_IOS=0 TF_SET_ANDROID_WORKSPACE=0
-            export CC_OPT_FLAGS='-Ofast -flto'
+            export CC_OPT_FLAGS='-Ofast -fno-fast-math -flto'
             if ${{ matrix.debug == 'true' && 'true' || 'false' }}; then
               export TF_BUILD_FLAGS="--config=dbg"
             else
