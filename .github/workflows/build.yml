@@ -307,6 +307,9 @@ jobs:
             ./configure
             echo "Configure finished."
 
+            # disable AVX in oneDNN although it may detect at runtime it simplifies the build
+            sed -i.bak 's/\(#define .*AVX.*\) 1/\1 0/' third_party/mkl_dnn/mkldnn_v1.BUILD third_party/xla/third_party/tsl/third_party/mkl_dnn/mkldnn_v1.BUILD
+
             if [ -e tensorflow/tools/pip_package/build_pip_package.sh ]
             then
                 # < 2.17
