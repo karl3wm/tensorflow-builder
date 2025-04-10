@@ -70,6 +70,7 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
       - name: Plan caching
+        # note: there are normative instructions for this at https://github.com/actions/cache/blob/main/tips-and-workarounds.md#force-deletion-of-caches-overriding-default-cache-eviction-policy which  i did not know about
         id: caching
         env:
           GH_TOKEN: ${{ github.token }}
