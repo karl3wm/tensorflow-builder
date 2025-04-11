@@ -105,10 +105,10 @@ jobs:
           echo "lastkey=$LATEST_KEY" >> $GITHUB_OUTPUT
           echo "nextkey=$NEXT_KEY" >> $GITHUB_OUTPUT
       - name: Free disk space (Ubuntu)
-        if: ${{ matrix.os == 'linux'  && (matrix.acceleration != 'cpu' || matrix.debug == 'true') }}
+        #if: ${{ matrix.os == 'linux'  && (matrix.acceleration != 'cpu' || matrix.debug == 'true') }}
         uses: jlumbroso/free-disk-space@main
-      #   with:
-      #     tool-cache: true # frees more space
+        with:
+          tool-cache: true # frees more space
       - name: Add CUDA and ROCm repositories (Ubuntu)
         if: ${{ matrix.os == 'linux' }}
         run: |
