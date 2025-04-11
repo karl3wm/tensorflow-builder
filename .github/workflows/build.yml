@@ -329,6 +329,7 @@ jobs:
             echo "Configure finished."
 
             # disable AVX in oneDNN although it may detect at runtime it simplifies the build. bazel only puts this change in place if it is not already cached.
+            # does this actually do anything? might need deeper exploration
             sed -i.bak 's/\(#define .*AVX.*\) 1/\1 0/; s/\(#define BUILD_GEMM_KERNELS_ALL\) 1/\1 0/' third_party/mkl_dnn/mkldnn_v1.BUILD third_party/xla/third_party/tsl/third_party/mkl_dnn/mkldnn_v1.BUILD
 
             if [ -e tensorflow/tools/pip_package/build_pip_package.sh ]
@@ -433,6 +434,7 @@ jobs:
           echo "Bazel build finished and wheel file created in ${PIP_WHL_DIR}:"
           ls "$PIP_WHL_DIR"/*.whl
           echo PIP_WHL_DIR="$PIP_WHL_DIR" >> $GITHUB_OUTPUT
+          echo TF_BUILD_FLAGS="$TF_BUILD_FLAGS" >> $GITHUB_OUTPUT
       # - name: Setup tmate session for debugging
       #   if: always()
       #   uses: mxschmitt/action-tmate@v3
@@ -440,13 +442,12 @@ jobs:
       - name: Run Tests
         working-directory: tensorflow
         run: |
+          flags="${{ steps.build.outputs.TF_BUILD_FLAGS }} -k"
           case "${{ matrix.acceleration }}" in
           'cpu')
-            export flags="$TF_BUILD_FLAGS --config=cuda --config=cuda_wheel"
           ;;
           'gpu')
             export LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:/usr/local/cuda/lib64:/usr/local/cuda/extras/CUPTI/lib64:$LD_LIBRARY_PATH"
-            export flags="--config=linux --config=cuda -k"
           ;;
           esac
           bazel test --test_sharding_strategy=disabled ${flags} tensorflow/python/kernel_tests/nn_ops:softmax_op_test
