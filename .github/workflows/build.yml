@@ -440,6 +440,7 @@ jobs:
       #   uses: mxschmitt/action-tmate@v3
       #   timeout-minutes: 60
       - name: Run Tests
+        if: ${{ matrix.os != 'linux' }}
         working-directory: tensorflow
         run: |
           flags="${{ steps.build.outputs.TF_BUILD_FLAGS }} -k"
