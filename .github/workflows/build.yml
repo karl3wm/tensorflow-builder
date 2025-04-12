@@ -435,12 +435,9 @@ jobs:
           ls "$PIP_WHL_DIR"/*.whl
           echo PIP_WHL_DIR="$PIP_WHL_DIR" >> $GITHUB_OUTPUT
           echo TF_BUILD_FLAGS="$TF_BUILD_FLAGS" >> $GITHUB_OUTPUT
-      # - name: Setup tmate session for debugging
-      #   if: always()
-      #   uses: mxschmitt/action-tmate@v3
-      #   timeout-minutes: 60
       - name: Run Tests
-        if: ${{ matrix.os != 'linux' }}
+        id: tests
+        if: matrix.os != 'linux'
         working-directory: tensorflow
         run: |
           flags="${{ steps.build.outputs.TF_BUILD_FLAGS }} -k"
@@ -454,6 +451,10 @@ jobs:
           bazel test --test_sharding_strategy=disabled ${flags} tensorflow/python/kernel_tests/nn_ops:softmax_op_test
           bazel test --test_sharding_strategy=disabled ${flags} //tensorflow/python/saved_model:load_test --test_filter=*LoadTest.test_capture_variables*
           bazel test ${flags} //tensorflow/python/...
+      - name: Setup tmate session for debugging
+        if: failure() && matrix.os != 'linux' && steps.tests.outcome == 'failure'
+        uses: mxschmitt/action-tmate@v3
+        timeout-minutes: 60
       - name: Always Shutdown Bazel Before Caching
         if: always()
         working-directory: tensorflow
