@@ -104,11 +104,28 @@ jobs:
           echo "save key: $NEXT_KEY"
           echo "lastkey=$LATEST_KEY" >> $GITHUB_OUTPUT
           echo "nextkey=$NEXT_KEY" >> $GITHUB_OUTPUT
-      - name: Free disk space (Ubuntu)
-        if: ${{ matrix.os == 'linux'  }} #&& (matrix.acceleration != 'cpu' || matrix.debug == 'true') }}
-        uses: jlumbroso/free-disk-space@main
+      - name: Checkout TensorFlow ${{ matrix.tensorflow }} Source Code
+        uses: actions/checkout@v4
         with:
-          tool-cache: true # frees more space
+          repository: ${{ matrix.acceleration == 'rocm' && 'ROCm/tensorflow-upstream' || 'tensorflow/tensorflow' }}
+          path: 'tensorflow'
+          filter: 'tree:0'
+          ref: v${{ matrix.tensorflow }}${{ matrix.acceleration == 'rocm' && '-rocm-enhanced' || '' }}
+      - name: Install LLVM (Ubuntu)
+        id: llvm
+        if: ${{ matrix.os == 'linux' }}
+        working-directory: tensorflow
+        run: |
+          # note that prior to tensorflow 2.13 or so clang was not used
+          # pick the second-oldest supported version
+          CLANG_VER="$(sed -ne '/\/llvm-[0-9]*\/bin/ { s/.*\/llvm-\([0-9]*\)\/bin.*/\1/p; }' < configure.py | sort --unique --numeric | tee /dev/stderr | head -n 2 | tail -n 1)"
+          echo "Installing LLVM."
+          wget https://apt.llvm.org/llvm.sh
+          chmod +x llvm.sh
+          sudo ./llvm.sh "$CLANG_VER"
+          rm llvm.sh
+          echo "LLVM installation complete."
+          echo "version=$CLANG_VER" >> $GITHUB_OUTPUT
       - name: Add CUDA and ROCm repositories (Ubuntu)
         if: ${{ matrix.os == 'linux' }}
         run: |
@@ -120,13 +137,18 @@ jobs:
           wget https://repo.radeon.com/rocm/rocm.gpg.key -O - | gpg --dearmor | sudo tee /etc/apt/keyrings/rocm.gpg
           echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/rocm.gpg] https://repo.radeon.com/rocm/apt/6.3.3 ${UBUNTU_CODENAME} main" | sudo tee -a /etc/apt/sources.list.d/rocm.list
           echo -e 'Package: *\nPin: release o=repo.radeon.com\nPin-Priority: 600' | sudo tee /etc/apt/preferences.d/rocm-pin-600
+      - name: Free disk space (Ubuntu)
+        if: ${{ matrix.os == 'linux'  }} #&& (matrix.acceleration != 'cpu' || matrix.debug == 'true') }}
+        uses: jlumbroso/free-disk-space@main
+        with:
+          tool-cache: true # frees more space
       - name: Install system packages
         run: |
           echo "Installing system packages."
           #sudo apt-get dist-upgrade --yes --quiet # slows down build
           case "${{ matrix.os }}" in
           'linux')
-            sudo apt-get install --yes --quiet build-essential curl git python3-dev pkg-config coreutils zip unzip xz-utils lld wget sed
+            sudo apt-get install --yes --quiet build-essential curl git python3-dev pkg-config coreutils zip unzip xz-utils lld wget sed clang-${{ steps.llvm.outputs.version }}
             case "${{ matrix.acceleration }}" in
             'gpu')
               sudo apt-get install --yes --quiet libcudnn9-cuda-12=9.3.* libcudnn9-dev-cuda-12=9.3.* cuda-toolkit-12-3
@@ -139,6 +161,10 @@ jobs:
               sudo update-alternatives --list rocm
             ;;
             esac
+            sudo update-alternatives --install /usr/bin/clang clang /usr/bin/clang-"$CLANG_VER" 0
+            sudo update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-"$CLANG_VER" 0
+            hash -r
+            readlink -f $(type -p clang)
           ;;
           'macos')
             brew install python
@@ -169,30 +195,6 @@ jobs:
       #    git clone --filter=tree:0 --no-checkout https://github.com/tensorflow/tensorflow
       #    cd tensorflow
       #    git checkout ${{ matrix.tensorflow }} -b build
-      - name: Checkout TensorFlow ${{ matrix.tensorflow }} Source Code
-        uses: actions/checkout@v4
-        with:
-          repository: ${{ matrix.acceleration == 'rocm' && 'ROCm/tensorflow-upstream' || 'tensorflow/tensorflow' }}
-          path: 'tensorflow'
-          filter: 'tree:0'
-          ref: v${{ matrix.tensorflow }}${{ matrix.acceleration == 'rocm' && '-rocm-enhanced' || '' }}
-      - name: Install LLVM (Ubuntu)
-        if: ${{ matrix.os == 'linux' }}
-        working-directory: tensorflow
-        run: |
-          # note that prior to tensorflow 2.13 or so clang was not used
-          # pick the second-oldest supported version
-          CLANG_VER="$(sed -ne '/\/llvm-[0-9]*\/bin/ { s/.*\/llvm-\([0-9]*\)\/bin.*/\1/p; }' < configure.py | sort --unique --numeric | tee /dev/stderr | head -n 2 | tail -n 1)"
-          echo "Installing LLVM."
-          wget https://apt.llvm.org/llvm.sh
-          chmod +x llvm.sh
-          sudo ./llvm.sh "$CLANG_VER"
-          sudo update-alternatives --install /usr/bin/clang clang /usr/bin/clang-"$CLANG_VER" 0
-          sudo update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-"$CLANG_VER" 0
-          rm llvm.sh
-          echo "LLVM installation complete."
-          hash -r
-          readlink -f $(type -p clang)
       - name: Restore Cache
         uses: actions/cache/restore@v4
         with:
