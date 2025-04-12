@@ -452,7 +452,7 @@ jobs:
           bazel test --test_sharding_strategy=disabled ${flags} //tensorflow/python/saved_model:load_test --test_filter=*LoadTest.test_capture_variables*
           bazel test ${flags} //tensorflow/python/...
       - name: Setup tmate session for debugging
-        if: failure() && matrix.os != 'linux' && steps.tests.outcome == 'failure'
+        if: failure() && matrix.debug == 'true' && matrix.os != 'linux' && steps.tests.outcome == 'failure'
         uses: mxschmitt/action-tmate@v3
         timeout-minutes: 60
       - name: Always Shutdown Bazel Before Caching
