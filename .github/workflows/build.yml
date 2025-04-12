@@ -143,12 +143,14 @@ jobs:
         with:
           tool-cache: true # frees more space
       - name: Install system packages
+        shell: bash -vx -e {0}
         run: |
           echo "Installing system packages."
           #sudo apt-get dist-upgrade --yes --quiet # slows down build
+          CLANG_VER=${{ steps.llvm.outputs.version }}
           case "${{ matrix.os }}" in
           'linux')
-            sudo apt-get install --yes --quiet build-essential curl git python3-dev pkg-config coreutils zip unzip xz-utils lld wget sed clang-${{ steps.llvm.outputs.version }}
+            sudo apt-get install --yes --quiet build-essential curl git python3-dev pkg-config coreutils zip unzip xz-utils lld wget sed gawk clang-"$CLANG_VER"
             case "${{ matrix.acceleration }}" in
             'gpu')
               sudo apt-get install --yes --quiet libcudnn9-cuda-12=9.3.* libcudnn9-dev-cuda-12=9.3.* cuda-toolkit-12-3
@@ -205,6 +207,15 @@ jobs:
             ~/Library/Caches/bazelisk
             tensorflow/build_output/cache
           key: ${{ steps.caching.outputs.lastkey }}
+      - name: Limit Cache Size
+        shell: bash -vx -e {0}
+        run: |
+          # from https://github.com/bazelbuild/bazel/issues/5139
+          GB=3
+          find $BAZEL_DISK_CACHE -type f -printf '%A@ %b %p\0' |
+            sort --numeric-sort --reverse --zero-terminated |
+            awk --assign RS='\0' --assign ORS='\0' --assign CAPACITY=$((GB * 1024 ** 3 / 512)) '{du += $2}; du > CAPACITY { print $3 }' |
+            xargs -v -r0 rm
       # - name: Dump Configuration and Environment (Troubleshooting)
       #   run: |
       #     echo "--- System Info ---"
